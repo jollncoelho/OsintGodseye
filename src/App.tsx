@@ -103,7 +103,7 @@ export default function App() {
     else if (!acLoading && liveAircraft.length > 0) {
       const mil = liveAircraft.filter((a) => a.military).length;
       const heli = liveAircraft.filter((a) => a.helicopter).length;
-      addLog('info', `Aircraft snapshot: ${liveAircraft.length} tracks (${mil} military, ${heli} rotary)`);
+      addLog('info', `ADS-B sync: ${liveAircraft.length} aircraft loaded (${mil} military, ${heli} rotary)`);
     }
   }, [liveAircraft, acLoading, acError, addLog]);
 

@@ -9,8 +9,10 @@ interface AdsbAircraft {
   r: string | null; // registration
   t: string | null; // aircraft type
   alt_baro: number | 'ground' | null;
+  alt_geom: number | null; // geometric altitude (fallback)
   gs: number | null; // ground speed (knots)
   track: number | null; // true track (heading)
+  true_heading: number | null; // true heading (fallback)
   baro_rate: number | null; // vertical rate (ft/min)
   lat: number | null;
   lon: number | null;
@@ -119,13 +121,14 @@ function isMilFromDbFlags(dbFlags: number | null): boolean {
 }
 
 function parseAdsbAircraft(ac: AdsbAircraft, militaryOnly: boolean, trailsRef: React.MutableRefObject<Map<string, [number, number][]>>): Aircraft | null {
-  const { hex, flight, r, t, alt_baro, gs, track, baro_rate, lat, lon, dbFlags, desc, own_op, country } = ac;
+  const { hex, flight, r, t, alt_baro, alt_geom, gs, track, true_heading, baro_rate, lat, lon, dbFlags, desc, own_op, country } = ac;
   if (lat == null || lon == null) return null;
 
   const callsign = (flight ?? '').trim() || hex.toUpperCase();
   const originCountry = country ?? 'Unknown';
   const military = isMilitaryFlight(callsign, hex, originCountry) || isMilFromDbFlags(dbFlags);
-  const altitude = alt_baro === 'ground' ? 0 : alt_baro;
+  const altitude = alt_baro === 'ground' ? 0 : (alt_baro ?? alt_geom);
+  const heading = track ?? true_heading;
   const helicopter = isHelicopter(callsign, altitude, gs, t);
 
   if (militaryOnly && !military) return null;
@@ -147,7 +150,7 @@ function parseAdsbAircraft(ac: AdsbAircraft, militaryOnly: boolean, trailsRef: R
     originCountry,
     altitude: altitude ?? (alt_baro === 'ground' ? 0 : 10000),
     groundSpeed: gs != null ? gs * 0.514444 : null, // knots → m/s
-    heading: track,
+    heading: heading,
     verticalRate: baro_rate != null ? baro_rate * 0.00508 : null, // ft/min → m/s
     onGround: alt_baro === 'ground',
     military,
@@ -182,13 +185,12 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
         const milRes = await fetch('https://api.adsb.lol/v2/mil', { headers: { Accept: 'application/json' } });
         if (milRes.ok) {
           const milData: AdsbResponse = await milRes.json();
-          if (milData.ac) {
-            for (const ac of milData.ac) {
-              const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
-              if (parsed && !seenHex.has(parsed.icao24)) {
-                seenHex.add(parsed.icao24);
-                out.push(parsed);
-              }
+          const milList = milData.ac || [];
+          for (const ac of milList) {
+            const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
+            if (parsed && !seenHex.has(parsed.icao24)) {
+              seenHex.add(parsed.icao24);
+              out.push(parsed);
             }
           }
         }
@@ -204,13 +206,12 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
         });
         if (allRes.ok) {
           const allData: AdsbResponse = await allRes.json();
-          if (allData.ac) {
-            for (const ac of allData.ac) {
-              const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
-              if (parsed && !seenHex.has(parsed.icao24)) {
-                seenHex.add(parsed.icao24);
-                out.push(parsed);
-              }
+          const allList = allData.ac || [];
+          for (const ac of allList) {
+            const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
+            if (parsed && !seenHex.has(parsed.icao24)) {
+              seenHex.add(parsed.icao24);
+              out.push(parsed);
             }
           }
         }
@@ -225,13 +226,12 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
         });
         if (usRes.ok) {
           const usData: AdsbResponse = await usRes.json();
-          if (usData.ac) {
-            for (const ac of usData.ac) {
-              const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
-              if (parsed && !seenHex.has(parsed.icao24)) {
-                seenHex.add(parsed.icao24);
-                out.push(parsed);
-              }
+          const usList = usData.ac || [];
+          for (const ac of usList) {
+            const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
+            if (parsed && !seenHex.has(parsed.icao24)) {
+              seenHex.add(parsed.icao24);
+              out.push(parsed);
             }
           }
         }

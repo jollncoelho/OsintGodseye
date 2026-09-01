@@ -180,9 +180,9 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
       const out: Aircraft[] = [];
       const seenHex = new Set<string>();
 
-      // 1. Fetch military flights from ADSB.lol /v2/mil (free, no key)
+      // 1. Fetch military flights via serverless proxy (avoids CORS)
       try {
-        const milRes = await fetch('https://api.adsb.lol/v2/mil', { headers: { Accept: 'application/json' } });
+        const milRes = await fetch('/api/adsb?endpoint=mil', { headers: { Accept: 'application/json' } });
         if (milRes.ok) {
           const milData: AdsbResponse = await milRes.json();
           const milList = milData.ac || [];
@@ -195,13 +195,12 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
           }
         }
       } catch (err) {
-        console.warn('ADSB.lol /v2/mil fetch failed:', err);
+        console.warn('ADS-B proxy /mil fetch failed:', err);
       }
 
-      // 2. Fetch all flights in a radius around central Europe (covers most traffic)
-      // Using lat=50, lon=10, dist=250nm — covers UK, EU, parts of North Africa
+      // 2. Fetch all flights in a radius around central Europe via proxy
       try {
-        const allRes = await fetch('https://api.adsb.lol/v2/lat/50/lon/10/dist/250', {
+        const allRes = await fetch('/api/adsb?lat=50&lon=10&dist=250', {
           headers: { Accept: 'application/json' },
         });
         if (allRes.ok) {
@@ -216,12 +215,12 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
           }
         }
       } catch (err) {
-        console.warn('ADSB.lol radius fetch failed:', err);
+        console.warn('ADS-B proxy EU radius fetch failed:', err);
       }
 
-      // 3. Fetch US-area flights for broader coverage
+      // 3. Fetch US-area flights for broader coverage via proxy
       try {
-        const usRes = await fetch('https://api.adsb.lol/v2/lat/40/lon/-90/dist/250', {
+        const usRes = await fetch('/api/adsb?lat=40&lon=-90&dist=250', {
           headers: { Accept: 'application/json' },
         });
         if (usRes.ok) {
@@ -236,7 +235,7 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
           }
         }
       } catch (err) {
-        console.warn('ADSB.lol US radius fetch failed:', err);
+        console.warn('ADS-B proxy US radius fetch failed:', err);
       }
 
       if (out.length === 0) {

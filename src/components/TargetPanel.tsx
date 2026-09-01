@@ -1,0 +1,507 @@
+import { useEffect, useState } from 'react';
+import {
+  X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
+  Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
+  MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
+  Eye, ExternalLink,
+} from 'lucide-react';
+import type { SelectedTarget } from '@/types';
+import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
+import { weatherDescription } from '@/hooks/useTerritoryIntel';
+
+type Props = {
+  target: SelectedTarget;
+  onClose: () => void;
+};
+
+export default function TargetPanel({ target, onClose }: Props) {
+  if (!target) return null;
+
+  const lat = (target.data as { lat: number }).lat;
+  const lon = (target.data as { lon: number }).lon;
+
+  return (
+    <div className="glass slide-up absolute right-3 top-3 z-[800] flex h-[calc(100%-1.5rem)] w-80 flex-col overflow-hidden border-cyan/30 no-select">
+      <div className="bracket tl" />
+      <div className="bracket tr" />
+      <div className="bracket bl" />
+      <div className="bracket br" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-cyan/20 bg-cyan/5 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <TargetIcon kind={target.kind} />
+          <div className="text-[10px] font-bold tracking-[0.2em] text-cyan">TARGET ACQUIRED</div>
+        </div>
+        <button onClick={onClose} className="text-slate-500 hover:text-danger">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {target.kind === 'aircraft' && <AircraftDetails data={target.data} />}
+        {target.kind === 'ship' && <ShipDetails data={target.data} />}
+        {target.kind === 'satellite' && <SatDetails data={target.data} />}
+        {target.kind === 'radio' && <RadioDetails data={target.data} />}
+        {target.kind === 'cctv' && <CctvDetails data={target.data} />}
+        {target.kind === 'territory' && <TerritoryDetails data={target.data} />}
+      </div>
+
+      {/* Street-Level View button — available for all targets with coordinates */}
+      <StreetLevelButton lat={lat} lon={lon} />
+    </div>
+  );
+}
+
+function TargetIcon({ kind }: { kind: string }) {
+  const cls = 'h-4 w-4 text-cyan';
+  if (kind === 'aircraft') return <Plane className={cls} />;
+  if (kind === 'ship') return <Ship className={cls} />;
+  if (kind === 'satellite') return <Satellite className={cls} />;
+  if (kind === 'radio') return <Radio className={cls} />;
+  if (kind === 'territory') return <Globe className={cls} />;
+  return <Camera className={cls} />;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b border-cyan/10 px-3 py-2.5">
+      <div className="mb-2 text-[9px] font-bold tracking-[0.2em] text-cyan/60">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ icon, label, value, danger }: { icon: React.ReactNode; label: string; value: string; danger?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+        <span className="text-slate-600">{icon}</span>
+        {label}
+      </div>
+      <div className={`text-[11px] font-semibold tabular-nums ${danger ? 'text-danger' : 'text-slate-200'}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function AircraftDetails({ data }: { data: import('@/types').Aircraft }) {
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoErr, setPhotoErr] = useState(false);
+
+  useEffect(() => {
+    setPhoto(null);
+    setPhotoErr(false);
+    fetch(`https://api.planespotters.net/pub/photos/reg/${data.registration}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const p = d?.photos?.[0];
+        if (p?.thumbnail?.src) setPhoto(p.thumbnail.src);
+        else if (p?.link) setPhoto(p.link);
+        else setPhotoErr(true);
+      })
+      .catch(() => setPhotoErr(true));
+  }, [data.registration]);
+
+  return (
+    <>
+      {/* Photo */}
+      <div className="relative h-40 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        {photo ? (
+          <img src={photo} alt={data.model} className="h-full w-full object-cover" />
+        ) : photoErr ? (
+          <div className="flex h-full items-center justify-center">
+            <Plane className={`h-12 w-12 ${data.military ? 'text-danger' : 'text-cyan'} opacity-40`} />
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan/30 border-t-cyan" />
+          </div>
+        )}
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
+          {data.military ? 'MILITARY' : 'COMMERCIAL'}
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <Section title="IDENTIFICATION">
+        <div className="mb-1 text-sm font-bold text-slate-100">{data.model ?? 'Unknown Aircraft'}</div>
+        <div className="text-[10px] text-slate-500">{data.manufacturer}</div>
+        <div className="mt-2">
+          <Field icon={<Hash className="h-3 w-3" />} label="CALLSIGN" value={data.callsign} danger={data.military} />
+          <Field icon={<Hash className="h-3 w-3" />} label="ICAO24" value={data.icao24.toUpperCase()} />
+          <Field icon={<Flag className="h-3 w-3" />} label="REG" value={data.registration ?? '—'} />
+          <Field icon={<Building2 className="h-3 w-3" />} label="OPERATOR" value={data.operator ?? '—'} />
+        </div>
+      </Section>
+
+      <Section title="TELEMETRY">
+        <Field icon={<Navigation className="h-3 w-3" />} label="ORIGIN" value={data.origin ?? '—'} />
+        <Field icon={<Navigation className="h-3 w-3" />} label="DEST" value={data.destination ?? '—'} />
+        <Field icon={<Gauge className="h-3 w-3" />} label="ALTITUDE" value={fmtAlt(data.altitude)} />
+        <Field icon={<Gauge className="h-3 w-3" />} label="SPEED" value={fmtSpeed(data.groundSpeed)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="HEADING" value={fmtHeading(data.heading)} />
+        <Field icon={<ArrowUp className="h-3 w-3" />} label="CLIMB" value={fmtClimb(data.verticalRate)} />
+      </Section>
+
+      <Section title="POSITION">
+        <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+        <Field icon={<Flag className="h-3 w-3" />} label="COUNTRY" value={data.originCountry} />
+      </Section>
+
+      {data.trail.length > 1 && <TrailMini trail={data.trail} />}
+    </>
+  );
+}
+
+function ShipDetails({ data }: { data: import('@/types').Ship }) {
+  return (
+    <>
+      <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center">
+          <Ship className={`h-14 w-14 ${data.naval ? 'text-danger' : 'text-cyan'} opacity-50`} />
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
+          {data.naval ? 'NAVAL' : 'COMMERCIAL'}
+        </div>
+        <div className="scan-line" />
+      </div>
+      <Section title="IDENTIFICATION">
+        <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="text-[10px] text-slate-500">{data.type}</div>
+        <div className="mt-2">
+          <Field icon={<Hash className="h-3 w-3" />} label="MMSI" value={data.mmsi} />
+          <Field icon={<Flag className="h-3 w-3" />} label="FLAG" value={data.flag} />
+          <Field icon={<Navigation className="h-3 w-3" />} label="DEST" value={data.destination} />
+        </div>
+      </Section>
+      <Section title="TELEMETRY">
+        <Field icon={<Gauge className="h-3 w-3" />} label="SPEED" value={`${data.speed} kn`} />
+        <Field icon={<Compass className="h-3 w-3" />} label="HEADING" value={`${data.heading}°`} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+      </Section>
+      {data.trail.length > 1 && <TrailMini trail={data.trail} />}
+    </>
+  );
+}
+
+function SatDetails({ data }: { data: import('@/types').Satellite }) {
+  const color = data.category === 'ISS' ? 'text-amber' : data.category === 'GPS' ? 'text-green' : 'text-purple-400';
+  return (
+    <>
+      <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center">
+          <Satellite className={`h-14 w-14 ${color} opacity-60`} />
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-amber">
+          {data.category}
+        </div>
+        <div className="scan-line" />
+      </div>
+      <Section title="IDENTIFICATION">
+        <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="text-[10px] text-slate-500">Orbital Category: {data.category}</div>
+      </Section>
+      <Section title="ORBITAL DATA">
+        <Field icon={<Gauge className="h-3 w-3" />} label="ALTITUDE" value={`${Math.round(data.altitude)} km`} />
+        <Field icon={<Gauge className="h-3 w-3" />} label="VELOCITY" value={`${data.velocity.toFixed(2)} km/s`} />
+        <Field icon={<Compass className="h-3 w-3" />} label="HEADING" value={`${Math.round(data.heading)}°`} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+      </Section>
+      {data.trail.length > 1 && <TrailMini trail={data.trail} />}
+    </>
+  );
+}
+
+function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
+  return (
+    <>
+      <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center gap-3">
+          {data.favicon ? (
+            <img src={data.favicon} alt="" className="h-16 w-16 rounded border border-cyan/20 object-cover" />
+          ) : (
+            <RadioIcon className="h-14 w-14 text-purple-400 opacity-60" />
+          )}
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-purple-400">
+          LIVE RADIO
+        </div>
+      </div>
+      <Section title="STATION">
+        <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="text-[10px] text-slate-500">{data.country}</div>
+        <div className="mt-2">
+          <Field icon={<Volume2 className="h-3 w-3" />} label="BITRATE" value={`${data.bitrate} kbps`} />
+          <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+          <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+        </div>
+      </Section>
+      <Section title="TAGS">
+        <div className="text-[10px] text-slate-400">{data.tags || '—'}</div>
+      </Section>
+    </>
+  );
+}
+
+function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
+  return (
+    <>
+      <div className="relative h-44 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <img src={data.snapshot} alt={data.name} className="h-full w-full object-cover" />
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-green">
+          {data.type}
+        </div>
+        <div className="absolute right-2 top-2 flex items-center gap-1 rounded bg-danger/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-white">
+          <span className="h-1.5 w-1.5 rounded-full bg-white blink" /> REC
+        </div>
+        <div className="scan-line" />
+      </div>
+      <Section title="CAMERA">
+        <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="text-[10px] text-slate-500">{data.location}</div>
+        <div className="mt-2">
+          <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+          <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) {
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(!data.wikiSummary && !data.weather);
+
+  useEffect(() => {
+    if (data.wikiSummary || data.weather) setLoading(false);
+  }, [data]);
+
+  const copyCoords = () => {
+    const text = `${data.lat.toFixed(6)}, ${data.lon.toFixed(6)}`;
+    navigator.clipboard?.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const flagUrl = `https://flagcdn.com/w40/${data.countryCode.toLowerCase()}.png`;
+
+  return (
+    <>
+      {/* Photo */}
+      <div className="relative h-40 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        {data.primaryImage ? (
+          <img src={data.primaryImage} alt={data.displayName} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Globe className="h-12 w-12 text-cyan opacity-30" />
+          </div>
+        )}
+        <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
+          <MapPin className="h-3 w-3" /> TERRITORY INTEL
+        </div>
+        {/* Image source label */}
+        {data.imageSource && (
+          <div className="absolute bottom-2 left-2 rounded bg-hud-bg/85 px-2 py-0.5 text-[8px] font-semibold tracking-wider text-cyan/70">
+            {data.imageSource === 'satellite' ? 'Photo satellite locale' : `Image repr\u00e9sentative : ${data.city ?? data.displayName} via Wikip\u00e9dia`}
+          </div>
+        )}
+        <div className="scan-line" />
+      </div>
+
+      {/* Header: name + flag */}
+      <div className="flex items-center gap-2.5 border-b border-cyan/10 px-3 py-2.5">
+        {data.countryCode !== '??' && (
+          <img src={flagUrl} alt={data.countryCode} className="h-6 w-8 rounded-sm border border-cyan/20 object-cover" />
+        )}
+        <div className="flex-1">
+          <div className="text-sm font-bold text-slate-100">{data.displayName}</div>
+          <div className="text-[10px] text-slate-500">{data.country} · {data.countryCode}</div>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan/30 border-t-cyan" />
+        </div>
+      )}
+
+      {/* Coordinates */}
+      <Section title="COORDINATES">
+        <Field icon={<Compass className="h-3 w-3" />} label="LATITUDE" value={data.lat.toFixed(6)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LONGITUDE" value={data.lon.toFixed(6)} />
+        {data.timezone && <Field icon={<Clock className="h-3 w-3" />} label="TIMEZONE" value={data.timezone} />}
+        {data.elevation != null && <Field icon={<Mountain className="h-3 w-3" />} label="ELEVATION" value={`${Math.round(data.elevation)} m`} />}
+      </Section>
+
+      {/* Weather */}
+      {data.weather && (
+        <Section title="LOCAL WEATHER">
+          <Field icon={<Thermometer className="h-3 w-3" />} label="TEMPERATURE" value={`${Math.round(data.weather.temperature)}°C`} />
+          <Field icon={<Wind className="h-3 w-3" />} label="WIND" value={`${Math.round(data.weather.windSpeed)} km/h`} />
+          <Field icon={<Globe className="h-3 w-3" />} label="CONDITIONS" value={weatherDescription(data.weather.weatherCode)} />
+          <Field icon={<Clock className="h-3 w-3" />} label="DAY/NIGHT" value={data.weather.isDay ? 'Daytime' : 'Night'} />
+        </Section>
+      )}
+
+      {/* OSINT Summary */}
+      {data.wikiSummary && (
+        <Section title="OSINT INTEL SUMMARY">
+          <div className="text-[10px] leading-relaxed text-slate-400">{data.wikiSummary}</div>
+          {data.wikiUrl && (
+            <a
+              href={data.wikiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-[9px] text-cyan hover:text-cyan-dim"
+            >
+              <Globe className="h-3 w-3" /> Full Wikipedia article
+            </a>
+          )}
+        </Section>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2 p-3">
+        <button
+          onClick={() => {
+            const event = new CustomEvent('godseye-zoom-satellite', { detail: { lat: data.lat, lon: data.lon } });
+            window.dispatchEvent(event);
+          }}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded border border-cyan/30 bg-cyan/10 px-2 py-2 text-[10px] font-semibold text-cyan transition hover:bg-cyan/20"
+        >
+          <ZoomIn className="h-3.5 w-3.5" /> Zoom Satellite
+        </button>
+        <button
+          onClick={copyCoords}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded border border-cyan/30 bg-cyan/10 px-2 py-2 text-[10px] font-semibold text-cyan transition hover:bg-cyan/20"
+        >
+          <Copy className="h-3.5 w-3.5" /> {copied ? 'Copied!' : 'Copy GPS'}
+        </button>
+      </div>
+    </>
+  );
+}
+
+function StreetLevelButton({ lat, lon }: { lat: number; lon: number }) {
+  const [open, setOpen] = useState(false);
+
+  const googleStreetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+  const mapillaryUrl = `https://www.mapillary.com/app/?lat=${lat}&lng=${lon}&z=17`;
+  const bingMapsUrl = `https://www.bing.com/maps?cp=${lat}~${lon}&lvl=17&style=o`;
+
+  return (
+    <>
+      <div className="border-t border-cyan/10 p-3">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded border border-amber/30 bg-amber/10 px-2 py-2 text-[10px] font-semibold text-amber transition hover:bg-amber/20"
+        >
+          <Eye className="h-3.5 w-3.5" /> STREET-LEVEL VIEW
+        </button>
+      </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative flex w-[90vw] max-w-md flex-col overflow-hidden rounded-lg border border-cyan/30 bg-hud-bg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-cyan/20 bg-cyan/5 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-amber" />
+                <span className="text-[11px] font-bold tracking-[0.2em] text-cyan">STREET-LEVEL RECON</span>
+              </div>
+              <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-danger">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Target coordinates reminder */}
+            <div className="border-b border-cyan/10 px-4 py-3">
+              <div className="text-[9px] font-bold tracking-[0.15em] text-slate-500">TARGET COORDINATES</div>
+              <div className="mt-1 flex items-center gap-3 text-[11px] tabular-nums">
+                <span className="text-slate-300">
+                  <span className="text-slate-600">LAT</span> {lat.toFixed(6)}°
+                </span>
+                <span className="text-slate-300">
+                  <span className="text-slate-600">LON</span> {lon.toFixed(6)}°
+                </span>
+              </div>
+              <div className="mt-1.5 text-[8px] text-slate-600">
+                Precision: exact click point — open in new tab for full street-level inspection
+              </div>
+            </div>
+
+            {/* Direct open buttons */}
+            <div className="flex flex-col gap-2 p-4">
+              <a
+                href={googleStreetViewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded border border-cyan/40 bg-cyan/15 px-3 py-3 text-[11px] font-bold text-cyan transition hover:bg-cyan/25"
+              >
+                <ExternalLink className="h-4 w-4" /> OUVRIR GOOGLE STREET VIEW
+                <span className="text-[8px] font-normal text-slate-500">(nouvel onglet)</span>
+              </a>
+              <a
+                href={mapillaryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded border border-amber/30 bg-amber/10 px-3 py-2.5 text-[10px] font-semibold text-amber transition hover:bg-amber/20"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> VUE MAPILLARY
+                <span className="text-[8px] font-normal text-slate-500">(nouvel onglet)</span>
+              </a>
+              <a
+                href={bingMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded border border-slate-600/30 bg-slate-700/20 px-3 py-2 text-[9px] font-medium text-slate-400 transition hover:bg-slate-700/40"
+              >
+                <ExternalLink className="h-3 w-3" /> Bing Streetside (nouvel onglet)
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TrailMini({ trail }: { trail: [number, number][] }) {
+  const minLat = Math.min(...trail.map((t) => t[0]));
+  const maxLat = Math.max(...trail.map((t) => t[0]));
+  const minLon = Math.min(...trail.map((t) => t[1]));
+  const maxLon = Math.max(...trail.map((t) => t[1]));
+  const range = Math.max(maxLat - minLat, maxLon - minLon, 0.01);
+  const pts = trail.map((t) => {
+    const x = ((t[1] - minLon) / range) * 100;
+    const y = 100 - ((t[0] - minLat) / range) * 100;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return (
+    <Section title="FLIGHT PATH TRAIL">
+      <div className="relative h-24 w-full overflow-hidden rounded border border-cyan/10 bg-hud-bg">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+          <polyline
+            points={pts.join(' ')}
+            fill="none"
+            stroke="#22d3ee"
+            strokeWidth="0.8"
+            strokeOpacity="0.7"
+          />
+          <circle cx={pts[pts.length - 1].split(',')[0]} cy={pts[pts.length - 1].split(',')[1]} r="2" fill="#ff2d55" />
+        </svg>
+      </div>
+    </Section>
+  );
+}

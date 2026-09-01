@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Satellite, Plane, Rocket, Crosshair, Ship, Anchor, Radio, Camera, Search, Crosshair as CrosshairIcon, Activity, LocateFixed, Navigation } from 'lucide-react';
+import { Satellite, Plane, Rocket, Crosshair, Ship, Anchor, Radio, Camera, Search, Crosshair as CrosshairIcon, Activity, LocateFixed, Navigation, Radar } from 'lucide-react';
 import { formatUTC, formatUTCDate } from '@/lib/format';
 
 export type SearchResultItem = {
@@ -29,12 +29,13 @@ type Props = {
   onPickResult: (item: SearchResultItem) => void;
   showResults: boolean;
   setShowResults: (v: boolean) => void;
+  onOpenGodsEye: () => void;
 };
 
 export default function TopBar({
   civPlanes, milPlanes, helicopters, civShips, milShips, satellites, radios, cctv,
   search, onSearch, onSearchSubmit, onGeolocate, locating, geolocating,
-  searchResults, onPickResult, showResults, setShowResults,
+  searchResults, onPickResult, showResults, setShowResults, onOpenGodsEye,
 }: Props) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -158,6 +159,14 @@ export default function TopBar({
         <div className="flex items-center gap-1.5 rounded border border-green/30 bg-green/10 px-2.5 py-1.5 text-[10px] font-semibold text-green">
           <Activity className="h-3.5 w-3.5 blink" /> LIVE
         </div>
+        <button
+          type="button"
+          onClick={onOpenGodsEye}
+          title="Open God's Eye Terminal"
+          className="flex items-center gap-1.5 rounded border border-cyan/40 bg-cyan/15 px-2.5 py-1.5 text-[10px] font-bold text-cyan transition hover:bg-cyan/25"
+        >
+          <Radar className="h-3.5 w-3.5" /> GOD'S EYE
+        </button>
       </div>
     </div>
   );

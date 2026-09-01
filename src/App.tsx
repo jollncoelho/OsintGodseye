@@ -14,6 +14,7 @@ import type {
   LayerKey, BaseLayerKey, ShaderKey, SelectedTarget, LogEntry, Ship, Satellite, Aircraft,
 } from '@/types';
 import { formatUTC } from '@/lib/format';
+import { Satellite as SatelliteIcon } from 'lucide-react';
 
 const SHADER_CLASS: Record<ShaderKey, string> = {
   standard: '',
@@ -50,6 +51,7 @@ export default function App() {
   const logIdRef = useRef(0);
   const [reticle, setReticle] = useState<[number, number] | null>(null);
   const [cursor, setCursor] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  const [godsEyeUrl, setGodsEyeUrl] = useState<string | null>(null);
   const { fetchTerritory } = useTerritoryIntel();
 
   // 3D camera state
@@ -417,6 +419,7 @@ export default function App() {
         onPickResult={handlePickResult}
         showResults={showResults}
         setShowResults={setShowResults}
+        onOpenGodsEye={() => setGodsEyeUrl('https://osintgodseye.prohacking77.me')}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -511,7 +514,7 @@ export default function App() {
             </div>
           )}
 
-          {selected && <TargetPanel target={selected} onClose={() => setSelected(null)} />}
+          {selected && <TargetPanel target={selected} onClose={() => setSelected(null)} onTargetGodsEye={(lat, lon, label) => setGodsEyeUrl(`https://osintgodseye.prohacking77.me?lat=${lat}&lon=${lon}&zoom=14`)} onTargetGodsEyeSearch={(q) => setGodsEyeUrl(`https://osintgodseye.prohacking77.me?q=${encodeURIComponent(q)}`)} />}
 
           {searchAlert && (
             <div className="pointer-events-none absolute left-1/2 top-4 z-[850] -translate-x-1/2">
@@ -524,6 +527,29 @@ export default function App() {
       </div>
 
       <BottomBar logs={logs} activeRadio={activeRadio} onClearRadio={() => setActiveRadio(null)} />
+
+      {/* God's Eye fullscreen terminal modal */}
+      {godsEyeUrl && (
+        <div className="fixed inset-0 z-[99999] flex flex-col bg-black">
+          <div className="flex items-center justify-between border-b border-cyan/20 bg-hud-bg/90 px-4 py-2">
+            <div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.2em] text-cyan">
+              <SatelliteIcon className="h-4 w-4" /> TERMINAL TACTIQUE GOD'S EYE
+            </div>
+            <button
+              onClick={() => setGodsEyeUrl(null)}
+              className="rounded border border-danger/50 bg-danger/20 px-3 py-1 text-[10px] font-bold text-danger transition hover:bg-danger/30"
+            >
+              [ ✕ QUITTER LE TERMINAL ]
+            </button>
+          </div>
+          <iframe
+            src={godsEyeUrl}
+            className="w-full flex-1 border-none"
+            allow="geolocation; camera; microphone"
+            title="God's Eye Terminal"
+          />
+        </div>
+      )}
     </div>
   );
 }

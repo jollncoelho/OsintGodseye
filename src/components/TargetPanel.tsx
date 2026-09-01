@@ -3,7 +3,7 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink, Target,
+  Eye, ExternalLink,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
@@ -12,11 +12,9 @@ import { weatherDescription } from '@/hooks/useTerritoryIntel';
 type Props = {
   target: SelectedTarget;
   onClose: () => void;
-  onTargetGodsEye: (lat: number, lon: number, label?: string) => void;
-  onTargetGodsEyeSearch: (q: string) => void;
 };
 
-export default function TargetPanel({ target, onClose, onTargetGodsEye, onTargetGodsEyeSearch }: Props) {
+export default function TargetPanel({ target, onClose }: Props) {
   if (!target) return null;
 
   const lat = (target.data as { lat: number }).lat;
@@ -51,35 +49,6 @@ export default function TargetPanel({ target, onClose, onTargetGodsEye, onTarget
 
       {/* Street-Level View button — available for all targets with coordinates */}
       <StreetLevelButton lat={lat} lon={lon} />
-
-      {/* God's Eye targeting button */}
-      {target.kind === 'territory' ? (
-        <div className="border-t border-cyan/10 p-3">
-          <button
-            onClick={() => onTargetGodsEye(lat, lon, (target.data as { displayName?: string }).displayName)}
-            className="flex w-full items-center justify-center gap-1.5 rounded border border-cyan/40 bg-cyan/15 px-2 py-2 text-[10px] font-bold text-cyan transition hover:bg-cyan/25"
-          >
-            <Target className="h-3.5 w-3.5" /> CIBLER DANS GOD'S EYE
-          </button>
-        </div>
-      ) : (
-        <div className="border-t border-cyan/10 p-3">
-          <button
-            onClick={() => {
-              const d = target.data as { displayName?: string; name?: string; callsign?: string };
-              const label = d.displayName ?? d.name ?? d.callsign ?? '';
-              if (lat != null && lon != null) {
-                onTargetGodsEye(lat, lon, label);
-              } else if (label) {
-                onTargetGodsEyeSearch(label);
-              }
-            }}
-            className="flex w-full items-center justify-center gap-1.5 rounded border border-cyan/40 bg-cyan/15 px-2 py-2 text-[10px] font-bold text-cyan transition hover:bg-cyan/25"
-          >
-            <Target className="h-3.5 w-3.5" /> CIBLER DANS GOD'S EYE
-          </button>
-        </div>
-      )}
     </div>
   );
 }

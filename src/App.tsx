@@ -90,7 +90,7 @@ export default function App() {
   // Initial logs
   useEffect(() => {
     addLog('info', "OSINT GOD'S EYE geospatial intelligence platform initialized");
-    addLog('info', 'Connecting to OpenSky Network live feed...');
+    addLog('info', 'Connecting to ADSB.lol live feed...');
     addLog('info', 'Esri World Imagery tile source online');
     addLog('info', 'Orbital propagator armed — 9 satellites tracked');
     addLog('warn', 'Submarine cable overlay: 15 backbone routes loaded');
@@ -99,7 +99,7 @@ export default function App() {
 
   // Aircraft status logs
   useEffect(() => {
-    if (acError) addLog('alert', `OpenSky feed degraded: ${acError} — using cached data`);
+    if (acError) addLog('alert', `ADS-B feed degraded: ${acError} — using cached data`);
     else if (!acLoading && liveAircraft.length > 0) {
       const mil = liveAircraft.filter((a) => a.military).length;
       const heli = liveAircraft.filter((a) => a.helicopter).length;

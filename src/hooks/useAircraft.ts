@@ -172,6 +172,8 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trailsRef = useRef<Map<string, [number, number][]>>(new Map());
+  const failCountRef = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAircraft = useCallback(async () => {
     setLoading(true);
@@ -244,9 +246,11 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
 
       const capped = out.slice(0, 600);
       setAircraft(capped);
+      failCountRef.current = 0;
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'fetch failed';
       setError(msg);
+      failCountRef.current += 1;
     } finally {
       setLoading(false);
     }
@@ -257,9 +261,29 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
       setAircraft([]);
       return;
     }
-    fetchAircraft();
-    const id = setInterval(fetchAircraft, 15000);
-    return () => clearInterval(id);
+
+    let cancelled = false;
+
+    const scheduleNext = () => {
+      const fails = failCountRef.current;
+      // Exponential backoff: 15s → 30s → 60s → 120s → 240s (cap)
+      const delay = Math.min(15000 * Math.pow(2, fails), 240000);
+      intervalRef.current = setTimeout(runFetch, delay);
+    };
+
+    const runFetch = async () => {
+      if (cancelled) return;
+      await fetchAircraft();
+      if (cancelled) return;
+      scheduleNext();
+    };
+
+    runFetch();
+
+    return () => {
+      cancelled = true;
+      if (intervalRef.current) clearTimeout(intervalRef.current);
+    };
   }, [enabled, fetchAircraft]);
 
   return { aircraft, loading, error };

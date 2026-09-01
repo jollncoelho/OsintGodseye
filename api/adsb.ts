@@ -25,7 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const upstream = await fetch(targetUrl, {
-      headers: { Accept: 'application/json' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OsintGodseye/1.0',
+        'Accept': 'application/json',
+      },
     });
 
     if (!upstream.ok) {

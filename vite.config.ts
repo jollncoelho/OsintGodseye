@@ -19,6 +19,10 @@ export default defineConfig({
       '/api/adsb': {
         target: 'https://api.adsb.lol',
         changeOrigin: true,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OsintGodseye/1.0',
+          'Accept': 'application/json',
+        },
         rewrite: (path) => {
           const url = new URL(path, 'https://api.adsb.lol');
           const endpoint = url.searchParams.get('endpoint');

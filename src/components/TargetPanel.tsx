@@ -280,15 +280,150 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
   );
 }
 
+function FlirFallback({ cam }: { cam: import('@/types').CctvCamera }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let frame = 0;
+    let animId = 0;
+
+    const draw = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      frame++;
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+
+      // Thermal noise
+      const gridSize = 6;
+      for (let x = 0; x < w; x += gridSize) {
+        for (let y = 0; y < h; y += gridSize) {
+          const noise = Math.sin(x * 0.05 + y * 0.05 + frame * 0.03) * 0.5 + 0.5;
+          ctx.fillStyle = `rgba(0, ${Math.floor(40 + noise * 60)}, ${Math.floor(20 + noise * 30)}, ${noise * 0.3})`;
+          ctx.fillRect(x, y, gridSize, gridSize);
+        }
+      }
+
+      // Grid
+      ctx.strokeStyle = 'rgba(45, 255, 170, 0.08)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x <= w; x += 16) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y <= h; y += 16) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      const cx = w / 2;
+      const cy = h / 2;
+      const pulse = Math.sin(frame * 0.05) * 0.15 + 0.85;
+
+      // Radar reticle
+      ctx.strokeStyle = `rgba(45, 255, 170, ${pulse})`;
+      ctx.lineWidth = 1;
+
+      // Outer circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Crosshair
+      ctx.beginPath();
+      ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+      ctx.stroke();
+
+      // Corner brackets
+      const bSize = 12;
+      const inset = 8;
+      ctx.beginPath();
+      // TL
+      ctx.moveTo(inset, inset + bSize); ctx.lineTo(inset, inset); ctx.lineTo(inset + bSize, inset);
+      // TR
+      ctx.moveTo(w - inset - bSize, inset); ctx.lineTo(w - inset, inset); ctx.lineTo(w - inset, inset + bSize);
+      // BL
+      ctx.moveTo(inset, h - inset - bSize); ctx.lineTo(inset, h - inset); ctx.lineTo(inset + bSize, h - inset);
+      // BR
+      ctx.moveTo(w - inset - bSize, h - inset); ctx.lineTo(w - inset, h - inset); ctx.lineTo(w - inset, h - inset - bSize);
+      ctx.stroke();
+
+      // Sweep line
+      const sweepAngle = (frame * 0.02) % (Math.PI * 2);
+      const grad = ctx.createLinearGradient(cx, cy, cx + Math.cos(sweepAngle) * 40, cy + Math.sin(sweepAngle) * 40);
+      grad.addColorStop(0, 'rgba(45, 255, 170, 0.6)');
+      grad.addColorStop(1, 'rgba(45, 255, 170, 0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweepAngle) * 40, cy + Math.sin(sweepAngle) * 40);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = 'rgba(45, 255, 170, 0.7)';
+      ctx.font = '8px monospace';
+      ctx.fillText('FEED OFFLINE', 10, 16);
+      ctx.fillText('// SATELLITE FALLBACK', 10, 26);
+      ctx.fillText(`${cam.lat.toFixed(4)}  ${cam.lon.toFixed(4)}`, 10, h - 12);
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    canvas.width = 320;
+    canvas.height = 208;
+    draw();
+    return () => cancelAnimationFrame(animId);
+  }, [cam]);
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2">
+      <canvas ref={canvasRef} className="h-full w-full" />
+      <a
+        href={cam.imgUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded border border-green/40 bg-black/80 px-3 py-1.5 text-[9px] font-bold text-green transition hover:bg-green/20"
+      >
+        <ExternalLink className="h-3.5 w-3.5" /> OPEN EXTERNAL FEED
+      </a>
+    </div>
+  );
+}
+
 function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
 
+  useEffect(() => {
+    setImgError(false);
+    setImgLoaded(false);
+    setLastRefresh(Date.now());
+    const timer = setTimeout(() => {
+      setImgError((err) => err || !imgLoaded);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [data]);
+
   const handleRefresh = () => {
     setImgError(false);
     setImgLoaded(false);
     setLastRefresh(Date.now());
+    const timer = setTimeout(() => {
+      setImgError((err) => err || !imgLoaded);
+    }, 2000);
+    return () => clearTimeout(timer);
   };
 
   const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(data.imgUrl)}&default=1`;
@@ -315,17 +450,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
       {/* Image container */}
       <div className="relative h-52 overflow-hidden border-b border-green/10 bg-black">
         {imgError ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <FlirCanvas mode="thermal" silhouetteType="commercial" label={data.name} />
-            <a
-              href={data.imgUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded border border-green/40 bg-green/10 px-3 py-1.5 text-[9px] font-bold text-green transition hover:bg-green/20"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> OPEN DIRECT CAM
-            </a>
-          </div>
+          <FlirFallback cam={data} />
         ) : (
           <img
             src={proxyUrl}

@@ -63,6 +63,8 @@ export const MOCK_CCTV: CctvCamera[] = [
   { id: 'cam-4', kind: 'cctv', name: 'Chamonix - Mont-Blanc', location: 'Chamonix, France', lat: 45.9237, lon: 6.8694, imgUrl: 'https://backend.roundshot.com/cams/271/thumbnail', type: 'Mountain' },
   { id: 'cam-5', kind: 'cctv', name: 'Geneve - Rade & Jet d Eau', location: 'Geneva, Switzerland', lat: 46.2074, lon: 6.1559, imgUrl: 'https://backend.roundshot.com/cams/444/thumbnail', type: 'City' },
   { id: 'cam-6', kind: 'cctv', name: 'Zurich - Lac & Centre', location: 'Zurich, Switzerland', lat: 47.3686, lon: 8.5417, imgUrl: 'https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
+  { id: 'cam-7', kind: 'cctv', name: 'Zermatt - Matterhorn', location: 'Zermatt, Switzerland', lat: 46.0207, lon: 7.7491, imgUrl: 'https://backend.roundshot.com/cams/5/thumbnail', type: 'Mountain' },
+  { id: 'cam-8', kind: 'cctv', name: 'Jungfraujoch - Top of Europe', location: 'Jungfraujoch, Switzerland', lat: 46.5475, lon: 7.9822, imgUrl: 'https://backend.roundshot.com/cams/210/thumbnail', type: 'Mountain' },
 ];
 
 // ---------- Satellite orbital elements (TLE-derived, simplified) ----------

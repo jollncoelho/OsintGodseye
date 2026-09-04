@@ -283,10 +283,12 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
 function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   const handleRefresh = () => {
     setImgError(false);
+    setImgLoaded(false);
     setRefreshKey((k) => k + 1);
     setLastRefresh(Date.now());
   };
@@ -317,12 +319,12 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
         {imgError ? (
           <div className="flex h-full flex-col items-center justify-center gap-2">
             <Camera className="h-10 w-10 text-green/30" />
-            <span className="text-[9px] text-slate-600">SIGNAL LOST — RETRYING...</span>
+            <span className="text-[9px] text-slate-600">SIGNAL LOST</span>
             <button
               onClick={handleRefresh}
               className="rounded border border-green/30 bg-green/10 px-2 py-1 text-[8px] font-bold text-green transition hover:bg-green/20"
             >
-              RECONNECT
+              RETRY
             </button>
           </div>
         ) : (
@@ -330,9 +332,17 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
             key={refreshKey}
             src={snapshotUrl}
             alt={data.name}
+            crossOrigin="anonymous"
+            loading="lazy"
             className="h-full w-full object-cover"
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
           />
+        )}
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-green/30 border-t-green" />
+          </div>
         )}
 
         {/* LIVE SAT-LINK badge */}

@@ -271,6 +271,21 @@ export default function App() {
     inspectTerritory(lat, lon, zoom);
   }, [addLog, inspectTerritory]);
 
+  // URL deep-link: ?lat=...&lon=...&label=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const lat = parseFloat(params.get('lat') ?? '');
+    const lon = parseFloat(params.get('lon') ?? '');
+    const label = params.get('label');
+    if (!Number.isNaN(lat) && !Number.isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+      const displayLabel = label || `Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      const timer = setTimeout(() => {
+        navigateToCoordinates(lat, lon, displayLabel, 16);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [navigateToCoordinates]);
+
   const handleSearch = useCallback(async () => {
     const q = search.trim();
     if (!q) return;

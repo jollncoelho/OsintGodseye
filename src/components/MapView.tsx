@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import type { Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget } from '@/types';
-import { planeIcon, jetIcon, heliIcon, shipIcon, warshipIcon, satIcon, radioIcon, cctvIcon, selectedPulse, targetReticleIcon } from '@/lib/icons';
+import type { Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget, StrategicPoint, Earthquake } from '@/types';
+import { planeIcon, jetIcon, heliIcon, shipIcon, warshipIcon, satIcon, radioIcon, cctvIcon, selectedPulse, targetReticleIcon, nuclearIcon, baseIcon, conflictIcon, earthquakeIcon } from '@/lib/icons';
 import { UNDERSEA_CABLES } from '@/lib/cables';
+import { STRATEGIC_POINTS } from '@/lib/strategicPoints';
 
 type Props = {
   baseLayer: BaseLayerKey;
@@ -13,6 +14,7 @@ type Props = {
   satellites: Satellite[];
   radios: RadioStation[];
   cctv: CctvCamera[];
+  earthquakes: Earthquake[];
   selected: SelectedTarget;
   onSelect: (t: SelectedTarget) => void;
   onMapClick: (lat: number, lon: number, zoom: number) => void;
@@ -109,7 +111,7 @@ function MapEventHandler({
 }
 
 export default function MapView({
-  baseLayer, layers, aircraft, ships, satellites, radios, cctv, selected, onSelect, onMapClick, onMapContextMenu, reticle, flyTo, onFlyToDone, onCursorMove,
+  baseLayer, layers, aircraft, ships, satellites, radios, cctv, earthquakes, selected, onSelect, onMapClick, onMapContextMenu, reticle, flyTo, onFlyToDone, onCursorMove,
 }: Props) {
   const tile = TILE_LAYERS[baseLayer];
   const selectedId = selected ? (selected.data as { id: string }).id : null;
@@ -181,6 +183,60 @@ export default function MapView({
               },
               mouseout: (e) => {
                 (e.target as L.Polyline).setStyle({ weight: 1.5, opacity: 0.55 });
+              },
+            }}
+          />
+        ))}
+
+      {/* Strategic points */}
+      {layers.strategic &&
+        STRATEGIC_POINTS.map((pt) => (
+          <Marker
+            key={pt.id}
+            position={[pt.lat, pt.lon]}
+            icon={
+              selectedId === pt.id
+                ? selectedPulse(pt.category === 'conflict_zone' ? '#ff2d55' : pt.category === 'nuclear' ? '#fbbf24' : '#22d3ee')
+                : pt.category === 'nuclear'
+                  ? nuclearIcon()
+                  : pt.category === 'military_base'
+                    ? baseIcon()
+                    : conflictIcon()
+            }
+            eventHandlers={{
+              click: () => {
+                onSelect({ kind: 'territory', data: {
+                  id: pt.id,
+                  kind: 'territory',
+                  lat: pt.lat,
+                  lon: pt.lon,
+                  displayName: pt.name,
+                  country: pt.status,
+                  countryCode: '??',
+                } });
+              },
+            }}
+          />
+        ))}
+
+      {/* Earthquakes */}
+      {layers.earthquakes &&
+        earthquakes.map((eq) => (
+          <Marker
+            key={eq.id}
+            position={[eq.lat, eq.lon]}
+            icon={earthquakeIcon(eq.magnitude)}
+            eventHandlers={{
+              click: () => {
+                onSelect({ kind: 'territory', data: {
+                  id: eq.id,
+                  kind: 'territory',
+                  lat: eq.lat,
+                  lon: eq.lon,
+                  displayName: `M${eq.magnitude.toFixed(1)} Earthquake`,
+                  country: eq.place,
+                  countryCode: '??',
+                } });
               },
             }}
           />

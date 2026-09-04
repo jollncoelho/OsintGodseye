@@ -101,7 +101,9 @@ export type LayerKey =
   | 'satellites'
   | 'cables'
   | 'cctv'
-  | 'radios';
+  | 'radios'
+  | 'strategic'
+  | 'earthquakes';
 
 export type BaseLayerKey = 'satellite' | 'dark' | 'osm';
 export type ShaderKey = 'standard' | 'nvg' | 'thermal' | 'crt';
@@ -120,4 +122,33 @@ export type LogEntry = {
   time: string;
   level: 'info' | 'warn' | 'alert';
   msg: string;
+};
+
+export type StrategicPoint = {
+  id: string;
+  name: string;
+  category: 'nuclear' | 'military_base' | 'conflict_zone';
+  lat: number;
+  lon: number;
+  description: string;
+  status: string;
+};
+
+export type Earthquake = {
+  id: string;
+  lat: number;
+  lon: number;
+  magnitude: number;
+  depth: number;
+  place: string;
+  time: string;
+};
+
+export type LiveFeed = {
+  id: string;
+  name: string;
+  category: 'space' | 'news' | 'weather';
+  embedUrl: string | null;
+  externalUrl: string;
+  description: string;
 };

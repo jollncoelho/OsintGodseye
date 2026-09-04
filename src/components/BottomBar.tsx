@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Play, Pause, Volume2, VolumeX, Radio as RadioIcon, Terminal, X, ChevronUp, ChevronDown,
+  Eye, Thermometer, Monitor,
 } from 'lucide-react';
 import type { LogEntry, RadioStation } from '@/types';
 
@@ -15,6 +16,7 @@ export default function BottomBar({ logs, activeRadio, onClearRadio }: Props) {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(0.7);
+  const [logFilter, setLogFilter] = useState<'all' | 'info' | 'warn' | 'alert'>('all');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,6 +70,32 @@ export default function BottomBar({ logs, activeRadio, onClearRadio }: Props) {
           {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
         </button>
 
+        {/* Log level filters */}
+        <div className="flex items-center gap-1">
+          {([
+            { key: 'all', label: 'ALL' },
+            { key: 'info', label: 'INFO' },
+            { key: 'warn', label: 'WARN' },
+            { key: 'alert', label: 'ALERT' },
+          ] as const).map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setLogFilter(f.key)}
+              className={`rounded border px-1.5 py-1 text-[8px] font-bold transition ${
+                logFilter === f.key
+                  ? f.key === 'alert'
+                    ? 'border-danger/40 bg-danger/10 text-danger'
+                    : f.key === 'warn'
+                      ? 'border-amber/40 bg-amber/10 text-amber'
+                      : 'border-cyan/40 bg-cyan/10 text-cyan'
+                  : 'border-slate-700/30 bg-slate-800/20 text-slate-500 hover:bg-slate-800/40'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {/* Radio player */}
         <div className="flex flex-1 items-center gap-2.5 rounded border border-purple-400/20 bg-purple-400/5 px-2.5 py-1">
           <RadioIcon className="h-3.5 w-3.5 text-purple-400" />
@@ -114,7 +142,7 @@ export default function BottomBar({ logs, activeRadio, onClearRadio }: Props) {
             {logs.length === 0 && (
               <div className="text-[10px] text-slate-600">No events. Awaiting telemetry...</div>
             )}
-            {logs.map((log) => (
+            {logs.filter((log) => logFilter === 'all' || log.level === logFilter).map((log) => (
               <div key={log.id} className="flex items-start gap-2 text-[10px] leading-tight">
                 <span className="text-slate-600 tabular-nums">{log.time}</span>
                 <span

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Plane, Rocket, Crosshair, Ship, Anchor, Cable, Satellite, Camera, Radio,
   Layers, Eye, Thermometer, Monitor, ChevronLeft, ChevronRight, ChevronDown,
-  Radar, AlertTriangle,
+  Radar, AlertTriangle, Atom, Shield, Activity,
 } from 'lucide-react';
 import type { LayerKey, BaseLayerKey, ShaderKey } from '@/types';
 
@@ -33,6 +33,11 @@ const ENV_LAYERS: { key: LayerKey; label: string; icon: React.ReactNode; color: 
   { key: 'radios', label: 'Live Radios', icon: <Radio className="h-4 w-4" />, color: 'text-purple-400' },
 ];
 
+const INTEL_LAYERS: { key: LayerKey; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'strategic', label: 'Strategic Points', icon: <Atom className="h-4 w-4" />, color: 'text-amber' },
+  { key: 'earthquakes', label: 'Seismic (USGS)', icon: <Activity className="h-4 w-4" />, color: 'text-danger' },
+];
+
 const BASE_LAYERS: { key: BaseLayerKey; label: string; icon: React.ReactNode }[] = [
   { key: 'satellite', label: 'Sat HD', icon: <Eye className="h-3.5 w-3.5" /> },
   { key: 'dark', label: 'Tactical', icon: <Radar className="h-3.5 w-3.5" /> },
@@ -46,7 +51,7 @@ const SHADERS: { key: ShaderKey; label: string; icon: React.ReactNode }[] = [
   { key: 'crt', label: 'CRT', icon: <Monitor className="h-3.5 w-3.5" /> },
 ];
 
-const ALL_LAYERS = [...ENTITY_LAYERS, ...ENV_LAYERS];
+const ALL_LAYERS = [...ENTITY_LAYERS, ...ENV_LAYERS, ...INTEL_LAYERS];
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -189,6 +194,19 @@ export default function LeftSidebar({
         ))}
       </AccordionSection>
 
+      {/* Intel Layers accordion (new) */}
+      <AccordionSection title="GEOINT INTEL" icon={<Shield className="h-3.5 w-3.5" />} defaultOpen>
+        {INTEL_LAYERS.map((it) => (
+          <LayerToggle
+            key={it.key}
+            item={it}
+            on={layers[it.key]}
+            count={counts[it.key] ?? 0}
+            onToggle={() => toggleLayer(it.key)}
+          />
+        ))}
+      </AccordionSection>
+
       {/* Base Map Selector accordion (open by default) */}
       <AccordionSection title="BASE MAP" icon={<Radar className="h-3.5 w-3.5" />} defaultOpen>
         <div className="grid grid-cols-3 gap-1.5">
@@ -231,7 +249,7 @@ export default function LeftSidebar({
 
       <div className="mt-auto rounded border border-cyan/10 bg-hud-bg/40 p-2 text-[8px] leading-relaxed text-slate-600">
         <div className="mb-1 text-cyan/60">DATA SOURCES</div>
-        OpenSky Network · Radio-Browser · Esri World Imagery · Orbital Propagation
+        OpenSky Network · Radio-Browser · Esri World Imagery · Orbital Propagation · USGS Earthquakes
       </div>
     </div>
   );

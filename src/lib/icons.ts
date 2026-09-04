@@ -107,6 +107,50 @@ export function cctvIcon(): L.DivIcon {
   );
 }
 
+export function nuclearIcon(): L.DivIcon {
+  return svgWrap(
+    `<svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:#fbbf24;stroke-width:1.5">
+      <circle cx="12" cy="12" r="3" fill="#fbbf24"/>
+      <ellipse cx="12" cy="12" rx="8" ry="3.5" fill="none"/>
+      <ellipse cx="12" cy="12" rx="8" ry="3.5" fill="none" transform="rotate(60 12 12)"/>
+      <ellipse cx="12" cy="12" rx="8" ry="3.5" fill="none" transform="rotate(120 12 12)"/>
+    </svg>`,
+  );
+}
+
+export function baseIcon(): L.DivIcon {
+  return svgWrap(
+    `<svg viewBox="0 0 24 24" width="22" height="22" style="fill:#22d3ee;stroke:#0a0f18;stroke-width:0.4">
+      <path d="M12 2L4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+      <path d="M12 2L4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z" fill="#22d3ee" opacity="0.15"/>
+      <circle cx="12" cy="10" r="2" fill="#22d3ee"/>
+    </svg>`,
+  );
+}
+
+export function conflictIcon(): L.DivIcon {
+  return svgWrap(
+    `<svg viewBox="0 0 24 24" width="24" height="24" style="fill:#ff2d55;stroke:#0a0f18;stroke-width:0.4">
+      <path d="M12 2L2 22h20z" fill="none" stroke="#ff2d55" stroke-width="1.5"/>
+      <path d="M12 2L2 22h20z" fill="#ff2d55" opacity="0.15"/>
+      <path d="M12 9v6M12 18v1" stroke="#ff2d55" stroke-width="2"/>
+    </svg>`,
+  );
+}
+
+export function earthquakeIcon(magnitude: number): L.DivIcon {
+  const size = Math.min(28, 14 + magnitude * 2);
+  const color = magnitude >= 6 ? '#ff2d55' : magnitude >= 4.5 ? '#fbbf24' : '#22d3ee';
+  return svgWrap(
+    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="fill:none;stroke:${color};stroke-width:1.5">
+      <circle cx="12" cy="12" r="3" fill="${color}" stroke="none"/>
+      <circle cx="12" cy="12" r="6" opacity="0.6"/>
+      <circle cx="12" cy="12" r="9" opacity="0.3"/>
+    </svg>`,
+    size, size,
+  );
+}
+
 export function selectedPulse(color = '#22d3ee'): L.DivIcon {
   return L.divIcon({
     className: 'hud-icon',

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Satellite, Plane, Rocket, Crosshair, Ship, Anchor, Radio, Camera, Search, Crosshair as CrosshairIcon, Activity, LocateFixed, Navigation } from 'lucide-react';
+import { Satellite, Plane, Rocket, Crosshair, Ship, Anchor, Radio, Camera, Search, Crosshair as CrosshairIcon, Activity, LocateFixed, Navigation, Circle } from 'lucide-react';
 import { formatUTC, formatUTCDate } from '@/lib/format';
 
 export type SearchResultItem = {
@@ -29,12 +29,13 @@ type Props = {
   onPickResult: (item: SearchResultItem) => void;
   showResults: boolean;
   setShowResults: (v: boolean) => void;
+  cursor: { lat: number; lon: number; zoom: number } | null;
 };
 
 export default function TopBar({
   civPlanes, milPlanes, helicopters, civShips, milShips, satellites, radios, cctv,
   search, onSearch, onSearchSubmit, onGeolocate, locating, geolocating,
-  searchResults, onPickResult, showResults, setShowResults,
+  searchResults, onPickResult, showResults, setShowResults, cursor,
 }: Props) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -66,7 +67,23 @@ export default function TopBar({
 
       <div className="h-8 w-px bg-cyan/20" />
 
-      {/* Counters */}
+      {/* Dynamic locked coordinates + REC indicator */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 rounded border border-danger/30 bg-danger/10 px-2 py-1">
+          <Circle className="h-2.5 w-2.5 fill-danger text-danger blink" />
+          <span className="text-[9px] font-bold tracking-wider text-danger">REC</span>
+        </div>
+        {cursor && (
+          <div className="flex flex-col leading-tight">
+            <div className="text-[8px] tracking-wider text-slate-500">LOCKED COORDINATES</div>
+            <div className="text-[10px] font-bold tabular-nums text-cyan/90">
+              {cursor.lat.toFixed(4)}° / {cursor.lon.toFixed(4)}° · Z{cursor.zoom}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="h-8 w-px bg-cyan/20" />
       <div className="flex items-center gap-2 text-[10px]">
         <Counter icon={<Plane className="h-3.5 w-3.5" />} label="CIV AIR" value={civPlanes} sub="LIVE" color="text-cyan" />
         <Counter icon={<Rocket className="h-3.5 w-3.5" />} label="MIL AIR" value={milPlanes} sub="RED" color="text-danger" />

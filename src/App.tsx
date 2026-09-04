@@ -6,10 +6,14 @@ import LeftSidebar from '@/components/LeftSidebar';
 import TargetPanel from '@/components/TargetPanel';
 import BottomBar from '@/components/BottomBar';
 import CameraControls3D from '@/components/CameraControls3D';
+import ReconToolkit from '@/components/ReconToolkit';
+import LiveFeedsModal from '@/components/LiveFeedsModal';
 import { useAircraft } from '@/hooks/useAircraft';
 import { useRadios } from '@/hooks/useRadios';
 import { useTerritoryIntel } from '@/hooks/useTerritoryIntel';
+import { useEarthquakes } from '@/hooks/useEarthquakes';
 import { MOCK_SHIPS, MOCK_CCTV, MOCK_HELICOPTERS, buildSatellitesWithTrails } from '@/lib/mockData';
+import { STRATEGIC_POINTS } from '@/lib/strategicPoints';
 import type {
   LayerKey, BaseLayerKey, ShaderKey, SelectedTarget, LogEntry, Ship, Satellite, Aircraft,
 } from '@/types';
@@ -36,6 +40,8 @@ export default function App() {
     cables: true,
     cctv: true,
     radios: false,
+    strategic: false,
+    earthquakes: false,
   });
   const [selected, setSelected] = useState<SelectedTarget>(null);
   const [search, setSearch] = useState('');
@@ -50,6 +56,7 @@ export default function App() {
   const logIdRef = useRef(0);
   const [reticle, setReticle] = useState<[number, number] | null>(null);
   const [cursor, setCursor] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const { fetchTerritory } = useTerritoryIntel();
 
   // 3D camera state
@@ -74,6 +81,7 @@ export default function App() {
   }, [liveAircraft]);
 
   const { radios, loading: radioLoading, error: radioError } = useRadios(layers.radios);
+  const { earthquakes, loading: eqLoading, error: eqError } = useEarthquakes(layers.earthquakes);
 
   // Ships (mock, with slow drift)
   const [ships, setShips] = useState<Ship[]>(MOCK_SHIPS);
@@ -94,6 +102,8 @@ export default function App() {
     addLog('info', 'Esri World Imagery tile source online');
     addLog('info', 'Orbital propagator armed — 9 satellites tracked');
     addLog('warn', 'Submarine cable overlay: 15 backbone routes loaded');
+    addLog('info', 'Strategic points database: 32 sites loaded (nuclear, bases, conflicts)');
+    addLog('info', 'USGS seismic feed: standing by');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -111,6 +121,11 @@ export default function App() {
     if (radioError) addLog('warn', `Radio-Browser unreachable: ${radioError}`);
     else if (!radioLoading && radios.length > 0) addLog('info', `Radio layer: ${radios.length} live stations`);
   }, [radios, radioLoading, radioError, addLog]);
+
+  useEffect(() => {
+    if (eqError) addLog('warn', `USGS seismic feed error: ${eqError}`);
+    else if (!eqLoading && earthquakes.length > 0) addLog('info', `Seismic monitor: ${earthquakes.length} events (M2.5+) in last 24h`);
+  }, [earthquakes, eqLoading, eqError, addLog]);
 
   // Ship drift simulation
   useEffect(() => {
@@ -155,6 +170,8 @@ export default function App() {
         ['info', 'Satellite uplink stable — ISS pass in 14 min'],
         ['warn', 'Submarine cable integrity check: SEA-ME-WE 5 nominal'],
         ['info', 'Radio frequency scan: 4 new stations acquired'],
+        ['warn', 'Seismic anomaly detected — reviewing USGS data'],
+        ['info', 'Strategic point overlay refreshed — 32 sites active'],
       ];
       const [lvl, msg] = events[Math.floor(Math.random() * events.length)];
       addLog(lvl, msg);
@@ -392,7 +409,9 @@ export default function App() {
     cables: layers.cables ? 15 : 0,
     cctv: layers.cctv ? MOCK_CCTV.length : 0,
     radios: layers.radios ? radios.length : 0,
-  }), [layers, allAircraft, ships, satellites, radios]);
+    strategic: layers.strategic ? STRATEGIC_POINTS.length : 0,
+    earthquakes: layers.earthquakes ? earthquakes.length : 0,
+  }), [layers, allAircraft, ships, satellites, radios, earthquakes]);
 
   return (
     <div className="hud-frame relative flex h-screen w-screen flex-col overflow-hidden bg-hud-bg">
@@ -417,6 +436,7 @@ export default function App() {
         onPickResult={handlePickResult}
         showResults={showResults}
         setShowResults={setShowResults}
+        cursor={cursor}
       />
 
       <div className="relative flex flex-1 overflow-hidden">
@@ -466,6 +486,7 @@ export default function App() {
               satellites={satellites}
               radios={radios}
               cctv={MOCK_CCTV}
+              earthquakes={earthquakes}
               selected={selected}
               onSelect={handleSelect}
               onMapClick={handleMapClick}
@@ -500,6 +521,14 @@ export default function App() {
             is3DActive={is3DActive}
           />
 
+          {/* Recon Toolkit (right edge) */}
+          <ReconToolkit
+            earthquakes={earthquakes}
+            eqLoading={eqLoading}
+            eqError={eqError}
+            onOpenLiveFeeds={() => setShowLiveFeeds(true)}
+          />
+
           {/* Cursor coordinate readout */}
           {cursor && (
             <div className="pointer-events-none absolute bottom-3 left-3 z-[650]">
@@ -524,6 +553,8 @@ export default function App() {
       </div>
 
       <BottomBar logs={logs} activeRadio={activeRadio} onClearRadio={() => setActiveRadio(null)} />
+
+      {showLiveFeeds && <LiveFeedsModal onClose={() => setShowLiveFeeds(false)} />}
     </div>
   );
 }

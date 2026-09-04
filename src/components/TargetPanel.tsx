@@ -3,7 +3,7 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink,
+  Eye, ExternalLink, Activity, Signal,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
@@ -37,6 +37,12 @@ export default function TargetPanel({ target, onClose }: Props) {
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Signal integrity bars */}
+      <SignalIntegrityBars kind={target.kind} />
+
+      {/* Thermal / NVG camera preview */}
+      <ThermalPreview kind={target.kind} lat={lat} lon={lon} />
 
       <div className="flex-1 overflow-y-auto">
         {target.kind === 'aircraft' && <AircraftDetails data={target.data} />}
@@ -384,6 +390,92 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
         </button>
       </div>
     </>
+  );
+}
+
+function SignalIntegrityBars({ kind }: { kind: string }) {
+  const [bars, setBars] = useState([80, 65, 90, 55, 75]);
+  const [sigint, setSigint] = useState(-42);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setBars((prev) => prev.map((v) => Math.max(20, Math.min(100, v + (Math.random() - 0.5) * 15))));
+      setSigint((prev) => Math.max(-90, Math.min(-20, prev + (Math.random() - 0.5) * 8)));
+    }, 1500);
+    return () => clearInterval(id);
+  }, []);
+
+  const labels = ['SIG1', 'SIG2', 'SIG3', 'SIG4', 'SIG5'];
+  const colors = bars.map((v) => (v > 70 ? 'bg-green' : v > 40 ? 'bg-amber' : 'bg-danger'));
+
+  return (
+    <div className="border-b border-cyan/10 bg-hud-bg/40 px-3 py-2">
+      <div className="mb-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Signal className="h-3 w-3 text-cyan/70" />
+          <span className="text-[8px] font-bold tracking-[0.2em] text-cyan/60">SIGNAL INTEGRITY</span>
+        </div>
+        <div className="flex items-center gap-1 text-[9px] tabular-nums">
+          <Activity className="h-3 w-3 text-green" />
+          <span className="text-green">{sigint.toFixed(0)}</span>
+          <span className="text-slate-600">SIGINT dB</span>
+        </div>
+      </div>
+      <div className="flex items-end gap-1.5">
+        {bars.map((v, i) => (
+          <div key={i} className="flex flex-1 flex-col items-center gap-0.5">
+            <div className="flex h-12 w-full items-end overflow-hidden rounded-sm bg-hud-bg/60">
+              <div
+                className={`w-full ${colors[i]} transition-all duration-700`}
+                style={{ height: `${v}%` }}
+              />
+            </div>
+            <span className="text-[7px] text-slate-600">{labels[i]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ThermalPreview({ kind, lat, lon }: { kind: string; lat: number; lon: number }) {
+  const [mode, setMode] = useState<'thermal' | 'nvg'>('thermal');
+  const snapUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${lon - 0.008}%2C${lat - 0.005}%2C${lon + 0.008}%2C${lat + 0.005}&size=320%2C180&format=jpg&f=image`;
+
+  return (
+    <div className="border-b border-cyan/10 bg-hud-bg/40 px-3 py-2">
+      <div className="mb-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Thermometer className="h-3 w-3 text-amber/70" />
+          <span className="text-[8px] font-bold tracking-[0.2em] text-amber/60">CAMERA FEED</span>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setMode('thermal')}
+            className={`rounded border px-1.5 py-0.5 text-[7px] font-bold transition ${
+              mode === 'thermal' ? 'border-amber/40 bg-amber/15 text-amber' : 'border-slate-700/30 bg-slate-800/20 text-slate-500'
+            }`}
+          >
+            FLIR
+          </button>
+          <button
+            onClick={() => setMode('nvg')}
+            className={`rounded border px-1.5 py-0.5 text-[7px] font-bold transition ${
+              mode === 'nvg' ? 'border-green/40 bg-green/15 text-green' : 'border-slate-700/30 bg-slate-800/20 text-slate-500'
+            }`}
+          >
+            NVG
+          </button>
+        </div>
+      </div>
+      <div className={`relative h-20 overflow-hidden rounded border border-cyan/15 ${mode === 'thermal' ? 'shader-thermal' : 'shader-nvg'}`}>
+        <img src={snapUrl} alt="Thermal preview" className="h-full w-full object-cover" />
+        <div className="scan-line" />
+        <div className="absolute left-1 top-1 rounded bg-hud-bg/80 px-1 py-0.5 text-[7px] font-bold tracking-wider text-cyan/80">
+          {mode === 'thermal' ? 'FLIR' : 'NVG'} · {lat.toFixed(3)},{lon.toFixed(3)}
+        </div>
+      </div>
+    </div>
   );
 }
 

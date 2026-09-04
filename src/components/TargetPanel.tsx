@@ -293,7 +293,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
     setLastRefresh(Date.now());
   };
 
-  const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(data.imgUrl)}&default=1&t=${refreshKey}`;
+  const snapshotUrl = `${data.imgUrl}?t=${refreshKey}`;
 
   return (
     <>
@@ -317,31 +317,22 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
       {/* Image container */}
       <div className="relative h-52 overflow-hidden border-b border-green/10 bg-black">
         {imgError ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 bg-black">
-            {/* FLIR thermal fallback crosshair */}
-            <div className="relative flex h-20 w-20 items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-green/40" />
-              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-green/30" />
-              <div className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-green/30" />
-              <Camera className="h-8 w-8 text-green/50" />
-            </div>
-            <span className="text-[9px] font-bold tracking-wider text-green/60">SIGNAL LOST — FLIR FALLBACK</span>
-            <a
-              href={data.imgUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              referrerPolicy="no-referrer"
-              className="flex items-center gap-1.5 rounded border border-green/40 bg-green/15 px-3 py-1.5 text-[9px] font-bold tracking-wider text-green transition hover:bg-green/25"
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <Camera className="h-10 w-10 text-green/30" />
+            <span className="text-[9px] text-slate-600">SIGNAL LOST</span>
+            <button
+              onClick={handleRefresh}
+              className="rounded border border-green/30 bg-green/10 px-2 py-1 text-[8px] font-bold text-green transition hover:bg-green/20"
             >
-              <ExternalLink className="h-3.5 w-3.5" /> OPEN DIRECT CAM
-            </a>
+              RETRY
+            </button>
           </div>
         ) : (
           <img
             key={refreshKey}
-            src={proxiedUrl}
+            src={snapshotUrl}
             alt={data.name}
-            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             loading="lazy"
             className="h-full w-full object-cover"
             onLoad={() => setImgLoaded(true)}

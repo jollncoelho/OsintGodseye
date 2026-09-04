@@ -159,12 +159,12 @@ export default function MapView3D({
               },
             ],
           },
-      center: [0, 30],
-      zoom: 2.5,
+      center: [20, 10],
+      zoom: 1.8,
       pitch: pitch,
       bearing: bearing,
       maxZoom: ts.maxZoom,
-      minZoom: 1.5,
+      minZoom: 1,
       hash: false,
     });
 

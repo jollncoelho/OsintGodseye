@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
@@ -42,7 +42,7 @@ export default function TargetPanel({ target, onClose }: Props) {
       <SignalIntegrityBars kind={target.kind} />
 
       {/* Thermal / NVG camera preview */}
-      <ThermalPreview kind={target.kind} lat={lat} lon={lon} />
+      <ThermalPreview kind={target.kind} lat={lat} lon={lon} target={target} />
 
       <div className="flex-1 overflow-y-auto">
         {target.kind === 'aircraft' && <AircraftDetails data={target.data} />}
@@ -438,8 +438,31 @@ function SignalIntegrityBars({ kind }: { kind: string }) {
   );
 }
 
-function ThermalPreview({ kind, lat, lon }: { kind: string; lat: number; lon: number }) {
+function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number; lon: number; target: NonNullable<SelectedTarget> }) {
   const [mode, setMode] = useState<'thermal' | 'nvg'>('thermal');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+
+  const registration = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).registration : null;
+  const aircraftModel = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).model : null;
+  const isHelicopter = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).helicopter : false;
+  const isMilitary = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).military : false;
+
+  useEffect(() => {
+    setPhotoUrl(null);
+    if (kind !== 'aircraft' || !registration) return;
+    setPhotoLoading(true);
+    fetch(`https://api.planespotters.net/pub/photos/reg/${registration}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const p = d?.photos?.[0];
+        if (p?.thumbnail?.src) setPhotoUrl(p.thumbnail.src);
+        else if (p?.link) setPhotoUrl(p.link);
+      })
+      .catch(() => {})
+      .finally(() => setPhotoLoading(false));
+  }, [kind, registration]);
+
   const snapUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${lon - 0.008}%2C${lat - 0.005}%2C${lon + 0.008}%2C${lat + 0.005}&size=320%2C180&format=jpg&f=image`;
 
   return (
@@ -469,7 +492,17 @@ function ThermalPreview({ kind, lat, lon }: { kind: string; lat: number; lon: nu
         </div>
       </div>
       <div className={`relative h-20 overflow-hidden rounded border border-cyan/15 ${mode === 'thermal' ? 'shader-thermal' : 'shader-nvg'}`}>
-        <img src={snapUrl} alt="Thermal preview" className="h-full w-full object-cover" />
+        {kind === 'aircraft' && photoUrl ? (
+          <img src={photoUrl} alt={aircraftModel ?? 'Aircraft'} className="h-full w-full object-cover" onError={() => setPhotoUrl(null)} />
+        ) : kind === 'aircraft' && photoLoading ? (
+          <div className="flex h-full items-center justify-center bg-black">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />
+          </div>
+        ) : kind === 'aircraft' ? (
+          <FlirCanvas mode={mode} isHelicopter={isHelicopter} isMilitary={isMilitary} label={aircraftModel ?? registration ?? 'AIRCRAFT'} />
+        ) : (
+          <img src={snapUrl} alt="Thermal preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        )}
         <div className="scan-line" />
         <div className="absolute left-1 top-1 rounded bg-hud-bg/80 px-1 py-0.5 text-[7px] font-bold tracking-wider text-cyan/80">
           {mode === 'thermal' ? 'FLIR' : 'NVG'} · {lat.toFixed(3)},{lon.toFixed(3)}
@@ -477,6 +510,154 @@ function ThermalPreview({ kind, lat, lon }: { kind: string; lat: number; lon: nu
       </div>
     </div>
   );
+}
+
+function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal' | 'nvg'; isHelicopter: boolean; isMilitary: boolean; label: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let frame = 0;
+    let animId = 0;
+
+    const draw = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+      frame++;
+
+      // Background gradient
+      const bg = ctx.createRadialGradient(w / 2, h / 2, 5, w / 2, h / 2, w);
+      if (mode === 'thermal') {
+        bg.addColorStop(0, '#1a0800');
+        bg.addColorStop(0.5, '#0d0500');
+        bg.addColorStop(1, '#050200');
+      } else {
+        bg.addColorStop(0, '#001a08');
+        bg.addColorStop(0.5, '#000d04');
+        bg.addColorStop(1, '#000200');
+      }
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      // Thermal noise pixels
+      const gridSize = 8;
+      for (let x = 0; x < w; x += gridSize) {
+        for (let y = 0; y < h; y += gridSize) {
+          const noise = Math.sin(x * 0.05 + y * 0.05 + frame * 0.03) * 0.5 + 0.5;
+          const heat = noise * 0.15;
+          if (mode === 'thermal') {
+            ctx.fillStyle = `rgba(${Math.floor(80 + heat * 120)}, ${Math.floor(30 + heat * 60)}, 0, ${heat * 0.6})`;
+          } else {
+            ctx.fillStyle = `rgba(0, ${Math.floor(40 + heat * 80)}, ${Math.floor(20 + heat * 40)}, ${heat * 0.5})`;
+          }
+          ctx.fillRect(x, y, gridSize, gridSize);
+        }
+      }
+
+      // Grid overlay
+      const gridColor = mode === 'thermal' ? 'rgba(251, 191, 36, 0.08)' : 'rgba(45, 255, 170, 0.08)';
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x <= w; x += 16) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y <= h; y += 16) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Aircraft wireframe silhouette
+      const cx = w / 2;
+      const cy = h / 2;
+      const pulse = Math.sin(frame * 0.05) * 0.15 + 0.85;
+      const wireColor = mode === 'thermal'
+        ? `rgba(251, 191, 36, ${pulse})`
+        : `rgba(45, 255, 170, ${pulse})`;
+
+      ctx.strokeStyle = wireColor;
+      ctx.lineWidth = 1.2;
+
+      if (isHelicopter) {
+        // Helicopter silhouette: body + rotor
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 4, 14, 6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        // Rotor blade (spinning)
+        const rotorAngle = frame * 0.15;
+        const bladeLen = 22 * Math.abs(Math.cos(rotorAngle));
+        ctx.beginPath();
+        ctx.moveTo(cx - bladeLen, cy - 6);
+        ctx.lineTo(cx + bladeLen, cy - 6);
+        ctx.stroke();
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(cx + 12, cy + 4);
+        ctx.lineTo(cx + 28, cy + 2);
+        ctx.lineTo(cx + 28, cy - 2);
+        ctx.stroke();
+        // Tail rotor
+        ctx.beginPath();
+        ctx.arc(cx + 28, cy, 3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // Fixed-wing silhouette
+        const span = 26;
+        // Fuselage
+        ctx.beginPath();
+        ctx.moveTo(cx - 16, cy);
+        ctx.lineTo(cx + 16, cy);
+        ctx.stroke();
+        // Wings
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, cy - span / 2);
+        ctx.lineTo(cx + 2, cy - 4);
+        ctx.lineTo(cx + 2, cy + 4);
+        ctx.lineTo(cx - 4, cy + span / 2);
+        ctx.stroke();
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(cx + 12, cy);
+        ctx.lineTo(cx + 18, cy - 5);
+        ctx.lineTo(cx + 18, cy + 5);
+        ctx.stroke();
+        // Nose
+        if (isMilitary) {
+          ctx.beginPath();
+          ctx.moveTo(cx - 16, cy);
+          ctx.lineTo(cx - 20, cy - 2);
+          ctx.lineTo(cx - 20, cy + 2);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+
+      // Crosshair
+      const chColor = mode === 'thermal' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(45, 255, 170, 0.3)';
+      ctx.strokeStyle = chColor;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+      ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = mode === 'thermal' ? 'rgba(251, 191, 36, 0.7)' : 'rgba(45, 255, 170, 0.7)';
+      ctx.font = '7px monospace';
+      ctx.fillText(label.slice(0, 20), 4, h - 4);
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    canvas.width = 320;
+    canvas.height = 80;
+    draw();
+    return () => cancelAnimationFrame(animId);
+  }, [mode, isHelicopter, isMilitary, label]);
+
+  return <canvas ref={canvasRef} className="h-full w-full" />;
 }
 
 function StreetLevelButton({ lat, lon }: { lat: number; lon: number }) {

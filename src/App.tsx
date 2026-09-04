@@ -228,10 +228,10 @@ export default function App() {
     setIs3DActive((prev) => {
       const next = !prev;
       if (next) {
-        setPitch(60);
+        setPitch(15);
         setTerrainEnabled(true);
         setHillshadeEnabled(true);
-        addLog('info', '3D tactical view engaged — pitch 60°, terrain armed');
+        addLog('info', '3D tactical view engaged — pitch 15°, terrain armed');
       } else {
         setPitch(0);
         setBearing(0);

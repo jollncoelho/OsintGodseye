@@ -95,6 +95,22 @@ function createMarkerEl(svg: string, selected: boolean): HTMLElement {
   return el;
 }
 
+function sunPosition(): { lat: number; lon: number } {
+  const now = new Date();
+  const julianDay = (now.getTime() / 86400000) + 2440587.5;
+  const n = julianDay - 2451545.0;
+  const meanLong = (280.460 + 0.9856474 * n) % 360;
+  const meanAnom = (357.528 + 0.9856003 * n) % 360;
+  const eclipticLong = (meanLong + 1.915 * Math.sin(meanAnom * Math.PI / 180) + 0.020 * Math.sin(2 * meanAnom * Math.PI / 180)) % 360;
+  const obliquity = 23.4397 - 0.0000004 * n;
+  const ra = Math.atan2(Math.cos(obliquity * Math.PI / 180) * Math.sin(eclipticLong * Math.PI / 180), Math.cos(eclipticLong * Math.PI / 180)) * 180 / Math.PI;
+  const dec = Math.asin(Math.sin(obliquity * Math.PI / 180) * Math.sin(eclipticLong * Math.PI / 180)) * 180 / Math.PI;
+  const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
+  const greenwichHourAngle = (6.697375 + 0.0657098242 * n + utcHours) * 15 % 360;
+  const lon = (ra - greenwichHourAngle + 540) % 360 - 180;
+  return { lat: dec, lon };
+}
+
 export default function MapView3D({
   baseLayer, layers, aircraft, ships, satellites, radios, cctv, selected, onSelect,
   onMapClick, onCursorMove, pitch, bearing, terrainEnabled, hillshadeEnabled, buildings3DEnabled,
@@ -106,7 +122,6 @@ export default function MapView3D({
   const [mapReady, setMapReady] = useState(false);
   const selectedId = selected ? (selected.data as { id: string }).id : null;
 
-  // Initialize map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -119,6 +134,7 @@ export default function MapView3D({
         ? ts.url
         : {
             version: 8,
+            projection: { type: 'globe' },
             sources: {
               'raster-tiles': {
                 type: 'raster',
@@ -132,7 +148,7 @@ export default function MapView3D({
               {
                 id: 'background',
                 type: 'background',
-                paint: { 'background-color': '#05080d' },
+                paint: { 'background-color': '#020408' },
               },
               {
                 id: 'raster-layer',
@@ -144,17 +160,19 @@ export default function MapView3D({
             ],
           },
       center: [0, 30],
-      zoom: 3,
+      zoom: 2.5,
       pitch: pitch,
       bearing: bearing,
       maxZoom: ts.maxZoom,
-      minZoom: 2,
+      minZoom: 1.5,
       hash: false,
     });
 
     mapRef.current = map;
+
     map.on('load', () => {
-      // Add terrain source (AWS Terrain Tiles - Terrarium format, free)
+      try { map.setProjection({ type: 'globe' }); } catch { /* globe may already be set */ }
+
       map.addSource('terrain', {
         type: 'raster-dem',
         tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
@@ -163,7 +181,6 @@ export default function MapView3D({
         maxzoom: 15,
       });
 
-      // Add hillshade source
       map.addSource('hillshade-source', {
         type: 'raster-dem',
         tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
@@ -184,7 +201,6 @@ export default function MapView3D({
         },
       });
 
-      // Add OSM buildings source for 3D extrusion
       map.addSource('osm-buildings', {
         type: 'vector',
         tiles: ['https://tiles.mapillary.com/openstreetmap-buildings/v1/{z}/{x}/{y}.pbf'],
@@ -200,13 +216,8 @@ export default function MapView3D({
         layout: { visibility: 'none' },
         paint: {
           'fill-extrusion-color': [
-            'interpolate',
-            ['linear'],
-            ['get', 'render_height'],
-            0, '#0a0f18',
-            50, '#0891b2',
-            100, '#22d3ee',
-            200, '#fbbf24',
+            'interpolate', ['linear'], ['get', 'render_height'],
+            0, '#0a0f18', 50, '#0891b2', 100, '#22d3ee', 200, '#fbbf24',
           ],
           'fill-extrusion-height': ['get', 'render_height'],
           'fill-extrusion-base': ['get', 'render_min_height'],
@@ -214,7 +225,6 @@ export default function MapView3D({
         },
       });
 
-      // Wireframe overlay for buildings
       map.addLayer({
         id: '3d-buildings-wireframe',
         type: 'line',
@@ -222,14 +232,23 @@ export default function MapView3D({
         'source-layer': 'building',
         minzoom: 14,
         layout: { visibility: 'none' },
-        paint: {
-          'line-color': '#22d3ee',
-          'line-width': 0.5,
-          'line-opacity': 0.4,
-        },
+        paint: { 'line-color': '#22d3ee', 'line-width': 0.5, 'line-opacity': 0.4 },
       });
 
-      // Add reference labels overlay for satellite mode
+      // Day/night terminator overlay
+      addTerminatorLayer(map);
+
+      // Atmosphere/globe glow effect
+      try {
+        (map as unknown as { setFog: (opts: Record<string, unknown>) => void }).setFog({
+          color: 'rgba(10, 15, 24, 0.6)',
+          'high-color': 'rgba(34, 211, 238, 0.08)',
+          'horizon-blend': 0.15,
+          'space-color': '#020408',
+          'star-intensity': 0.6,
+        });
+      } catch { /* fog not available */ }
+
       if (baseLayer === 'satellite') {
         map.addSource('ref-labels', {
           type: 'raster',
@@ -266,14 +285,12 @@ export default function MapView3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update pitch & bearing
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     map.easeTo({ pitch, bearing, duration: 500 });
   }, [pitch, bearing, mapReady]);
 
-  // Toggle terrain
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -284,14 +301,12 @@ export default function MapView3D({
     }
   }, [terrainEnabled, mapReady]);
 
-  // Toggle hillshade
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     map.setLayoutProperty('hillshade', 'visibility', hillshadeEnabled ? 'visible' : 'none');
   }, [hillshadeEnabled, mapReady]);
 
-  // Toggle 3D buildings
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -300,7 +315,6 @@ export default function MapView3D({
     map.setLayoutProperty('3d-buildings-wireframe', 'visibility', vis);
   }, [buildings3DEnabled, mapReady]);
 
-  // Handle flyTo
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !flyTo) return;
@@ -315,7 +329,6 @@ export default function MapView3D({
     onFlyToDone();
   }, [flyTo, mapReady, onFlyToDone]);
 
-  // Update markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -347,44 +360,35 @@ export default function MapView3D({
         .addTo(map);
       el.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        onSelect({ kind: kind as SelectedTarget extends { kind: infer K } ? K : never, data: data as never } as never);
+        onSelect({ kind: kind as never, data: data as never } as never);
       });
       markersRef.current.set(id, marker);
     };
 
-    // Civil aircraft
     const civAc = layers.civAircraft ? aircraft.filter((a) => !a.military && !a.helicopter) : [];
     civAc.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, planeSvg(ac.heading ?? 0, false), 'aircraft', ac));
 
-    // Military aircraft
     const milAc = layers.milAircraft ? aircraft.filter((a) => a.military && !a.helicopter) : [];
     milAc.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, jetSvg(ac.heading ?? 0), 'aircraft', ac));
 
-    // Helicopters
     const helis = layers.helicopters ? aircraft.filter((a) => a.helicopter) : [];
     helis.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, heliSvg(ac.heading ?? 0, ac.military), 'aircraft', ac));
 
-    // Civil ships
     const civSh = layers.civShips ? ships.filter((s) => !s.naval) : [];
     civSh.forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, false), 'ship', s));
 
-    // Naval ships
     const milSh = layers.milShips ? ships.filter((s) => s.naval) : [];
     milSh.forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, true), 'ship', s));
 
-    // Satellites
     const sats = layers.satellites ? satellites : [];
     sats.forEach((sat) => addMarker(sat.id, sat.lat, sat.lon, satSvg(sat.category), 'satellite', sat));
 
-    // Radios
     const rads = layers.radios ? radios : [];
     rads.forEach((r) => addMarker(r.id, r.lat, r.lon, radioSvg(), 'radio', r));
 
-    // CCTV
     const cams = layers.cctv ? cctv : [];
     cams.forEach((c) => addMarker(c.id, c.lat, c.lon, cctvSvg(), 'cctv', c));
 
-    // Reticle
     if (reticle) {
       const rid = 'reticle-marker';
       activeIds.add(rid);
@@ -402,17 +406,52 @@ export default function MapView3D({
       }
     }
 
-    // Remove markers that are no longer active
     existingIds.forEach((id) => {
       if (!activeIds.has(id)) {
         const m = markersRef.current.get(id);
-        if (m) {
-          m.remove();
-          markersRef.current.delete(id);
-        }
+        if (m) { m.remove(); markersRef.current.delete(id); }
       }
     });
   }, [aircraft, ships, satellites, radios, cctv, layers, mapReady, selectedId, onSelect, reticle]);
 
-  return <div ref={containerRef} className="absolute inset-0" style={{ background: '#05080d', cursor: 'crosshair' }} />;
+  return <div ref={containerRef} className="absolute inset-0" style={{ background: '#020408', cursor: 'crosshair' }} />;
+}
+
+function addTerminatorLayer(map: MLMap) {
+  const sun = sunPosition();
+  const radius = 90;
+  const points: [number, number][] = [];
+  for (let bearing = 0; bearing <= 360; bearing += 3) {
+    const rad = bearing * Math.PI / 180;
+    const lat = Math.asin(Math.sin(sun.lat * Math.PI / 180) * Math.cos(rad) + Math.cos(sun.lat * Math.PI / 180) * Math.sin(rad) * Math.cos(radius * Math.PI / 180)) * 180 / Math.PI;
+    let lon = sun.lon + Math.atan2(
+      Math.sin(rad) * Math.sin(radius * Math.PI / 180) * Math.cos(sun.lat * Math.PI / 180),
+      Math.cos(radius * Math.PI / 180) - Math.sin(sun.lat * Math.PI / 180) * Math.sin(lat * Math.PI / 180)
+    ) * 180 / Math.PI;
+    lon = ((lon + 540) % 360) - 180;
+    points.push([lon, lat]);
+  }
+
+  map.addSource('terminator', {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [points.map(([lon, lat]) => [lon, lat]), []],
+      },
+      properties: {},
+    } as never,
+  });
+
+  map.addLayer({
+    id: 'terminator-fill',
+    type: 'fill',
+    source: 'terminator',
+    paint: {
+      'fill-color': '#020408',
+      'fill-opacity': 0.45,
+    },
+    layout: { visibility: 'visible' },
+  });
 }

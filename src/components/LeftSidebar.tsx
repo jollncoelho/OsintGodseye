@@ -160,8 +160,8 @@ export default function LeftSidebar({
   }
 
   return (
-    <div className="relative z-[700] flex w-56 flex-col gap-2.5 border-r border-cyan/25 bg-black/85 p-3 no-select">
-      <div className="flex items-center justify-between">
+    <div className="relative z-[700] flex w-56 max-h-[calc(100vh-5rem)] flex-col gap-2.5 overflow-y-auto border-r border-cyan/25 bg-black/85 p-3 no-select">
+      <div className="flex shrink-0 items-center justify-between">
         <div className="text-[10px] font-bold tracking-[0.25em] text-cyan">LAYERS</div>
         <button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-cyan" title="Collapse">
           <ChevronLeft className="h-4 w-4" />
@@ -247,7 +247,7 @@ export default function LeftSidebar({
         </div>
       </AccordionSection>
 
-      <div className="mt-auto rounded border border-cyan/10 bg-hud-bg/40 p-2 text-[8px] leading-relaxed text-slate-600">
+      <div className="shrink-0 rounded border border-cyan/10 bg-hud-bg/40 p-2 text-[8px] leading-relaxed text-slate-600">
         <div className="mb-1 text-cyan/60">DATA SOURCES</div>
         OpenSky Network · Radio-Browser · Esri World Imagery · Orbital Propagation · USGS Earthquakes
       </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Globe, Map as MapIcon } from 'lucide-react';
 import MapView from '@/components/MapView';
 import MapView3D from '@/components/MapView3D';
 import TopBar from '@/components/TopBar';
@@ -531,6 +532,33 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* Floating 3D Globe / 2D Plan toggle */}
+          <div className="absolute bottom-3 left-1/2 z-[660] flex -translate-x-1/2 items-center gap-0 border border-cyan/30 bg-black/85 no-select backdrop-blur-md">
+            <button
+              onClick={handleToggle3D}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold tracking-wider transition ${
+                is3DActive
+                  ? 'bg-cyan/15 text-cyan'
+                  : 'text-slate-500 hover:text-cyan/80'
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+              3D GLOBE
+            </button>
+            <div className="h-6 w-px bg-cyan/25" />
+            <button
+              onClick={handleToggle3D}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold tracking-wider transition ${
+                !is3DActive
+                  ? 'bg-cyan/15 text-cyan'
+                  : 'text-slate-500 hover:text-cyan/80'
+              }`}
+            >
+              <MapIcon className="h-4 w-4" />
+              2D PLAN
+            </button>
+          </div>
 
           {selected && <TargetPanel target={selected} onClose={() => setSelected(null)} />}
 

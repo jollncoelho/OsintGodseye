@@ -38,7 +38,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
     <>
       {/* Collapsed: vertical icon bar */}
       {!activeTool && (
-        <div className="glass absolute right-3 top-1/2 z-[650] flex -translate-y-1/2 flex-col gap-2 rounded-lg border border-cyan/20 p-1.5 no-select">
+        <div className="glass absolute right-3 top-28 z-[650] flex flex-col gap-2 rounded-lg border border-cyan/25 bg-black/85 p-1.5 no-select">
           <ToolButton
             icon={<Ruler className="h-4 w-4" />}
             label="MEASURE"
@@ -66,7 +66,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
 
       {/* Expanded: Measure panel */}
       {activeTool === 'measure' && (
-        <div className="glass slide-up absolute right-3 top-1/2 z-[650] flex w-64 -translate-y-1/2 flex-col gap-2 rounded-lg border border-cyan/30 p-3 no-select">
+        <div className="glass slide-up absolute right-3 top-28 z-[650] flex w-64 flex-col gap-2 rounded-lg border border-cyan/30 bg-black/85 p-3 no-select">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Ruler className="h-4 w-4 text-cyan" />
@@ -123,7 +123,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
 
       {/* Expanded: Earthquake alerts panel */}
       {activeTool === 'earthquakes' && (
-        <div className="glass slide-up absolute right-3 top-1/2 z-[650] flex h-[60vh] w-72 -translate-y-1/2 flex-col rounded-lg border border-amber/30 p-3 no-select">
+        <div className="glass slide-up absolute right-3 top-28 z-[650] flex h-[60vh] w-72 flex-col rounded-lg border border-amber/30 bg-black/85 p-3 no-select">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-amber" />

@@ -35,10 +35,10 @@ export default function CameraControls3D({
       <button
         onClick={() => setExpanded(true)}
         title="Expand 3D Camera controls"
-        className={`glass absolute right-3 bottom-12 z-[650] flex h-11 w-11 items-center justify-center rounded-lg border no-select transition-all duration-300 hover:scale-105 ${
+        className={`absolute right-3 bottom-3 z-[650] flex h-11 w-11 items-center justify-center border no-select transition-all duration-300 hover:scale-105 ${
           is3DActive
             ? 'border-cyan/40 bg-cyan/15 text-cyan shadow-[0_0_12px_rgba(34,211,238,0.3)]'
-            : 'border-cyan/20 bg-hud-bg/60 text-cyan/70 hover:border-cyan/40'
+            : 'border-cyan/25 bg-black/70 text-cyan/70 hover:border-cyan/40'
         }`}
       >
         <Box className="h-5 w-5" />
@@ -49,7 +49,7 @@ export default function CameraControls3D({
 
   // Expanded: full panel
   return (
-    <div className="glass absolute right-3 bottom-12 z-[650] flex w-52 flex-col gap-2 rounded-lg p-2.5 no-select transition-all duration-300 animate-[slideInRight_0.25s_ease-out]">
+    <div className="absolute right-3 bottom-3 z-[650] flex w-52 flex-col gap-2 border border-cyan/25 bg-black/85 p-2.5 no-select backdrop-blur-md transition-all duration-300 animate-[slideInRight_0.25s_ease-out]">
       {/* Header with collapse button */}
       <div className="flex items-center justify-between">
         <span className="text-[9px] font-bold tracking-[0.2em] text-cyan">3D CAMERA</span>

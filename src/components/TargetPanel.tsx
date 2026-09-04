@@ -21,14 +21,14 @@ export default function TargetPanel({ target, onClose }: Props) {
   const lon = (target.data as { lon: number }).lon;
 
   return (
-    <div className="glass slide-up absolute right-3 top-3 z-[800] flex h-[calc(100%-1.5rem)] w-80 flex-col overflow-hidden border-cyan/30 no-select">
+    <div className="slide-up absolute right-3 top-3 z-[800] flex h-[calc(100%-1.5rem)] w-80 flex-col overflow-hidden border border-cyan/40 bg-black/85 backdrop-blur-md no-select">
       <div className="bracket tl" />
       <div className="bracket tr" />
       <div className="bracket bl" />
       <div className="bracket br" />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-cyan/20 bg-cyan/5 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-cyan/30 bg-cyan/10 px-3 py-2">
         <div className="flex items-center gap-2">
           <TargetIcon kind={target.kind} />
           <div className="text-[10px] font-bold tracking-[0.2em] text-cyan">TARGET ACQUIRED</div>
@@ -71,8 +71,8 @@ function TargetIcon({ kind }: { kind: string }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b border-cyan/10 px-3 py-2.5">
-      <div className="mb-2 text-[9px] font-bold tracking-[0.2em] text-cyan/60">{title}</div>
+    <div className="border-b border-cyan/15 bg-black/40 px-3 py-2.5">
+      <div className="mb-2 text-[9px] font-bold tracking-[0.2em] text-cyan/70">{title}</div>
       {children}
     </div>
   );

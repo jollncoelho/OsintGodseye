@@ -131,7 +131,7 @@ export default function LeftSidebar({
 }: Props) {
   if (collapsed) {
     return (
-      <div className="glass relative z-[700] flex w-10 flex-col items-center gap-2 border-r border-cyan/20 py-3 no-select">
+      <div className="relative z-[700] flex w-10 flex-col items-center gap-2 border-r border-cyan/25 bg-black/85 py-3 no-select">
         <button onClick={() => setCollapsed(false)} className="text-cyan hover:text-cyan-dim" title="Expand">
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -160,7 +160,7 @@ export default function LeftSidebar({
   }
 
   return (
-    <div className="glass relative z-[700] flex w-56 flex-col gap-2.5 border-r border-cyan/20 p-3 no-select">
+    <div className="relative z-[700] flex w-56 flex-col gap-2.5 border-r border-cyan/25 bg-black/85 p-3 no-select">
       <div className="flex items-center justify-between">
         <div className="text-[10px] font-bold tracking-[0.25em] text-cyan">LAYERS</div>
         <button onClick={() => setCollapsed(true)} className="text-slate-500 hover:text-cyan" title="Collapse">

@@ -418,14 +418,6 @@ export default function App() {
 
 
       <TopBar
-        civPlanes={counts.civAircraft}
-        milPlanes={counts.milAircraft}
-        helicopters={counts.helicopters}
-        civShips={counts.civShips}
-        milShips={counts.milShips}
-        satellites={counts.satellites}
-        radios={counts.radios}
-        cctv={counts.cctv}
         search={search}
         onSearch={setSearch}
         onSearchSubmit={handleSearch}
@@ -499,8 +491,8 @@ export default function App() {
           )}
 
           {/* Compass / HUD reticle overlay */}
-          <div className="pointer-events-none absolute right-3 top-3 z-[650] flex items-center gap-2">
-            <div className="glass rounded px-2 py-1 text-[9px] text-cyan/70">
+          <div className="pointer-events-none absolute right-3 top-16 z-[650] flex items-center gap-2">
+            <div className="border border-cyan/25 bg-black/70 px-2 py-1 text-[9px] text-cyan/70">
               {baseLayer.toUpperCase()} · {shader.toUpperCase()} · {is3DActive ? '3D' : '2D'}
             </div>
           </div>
@@ -532,7 +524,7 @@ export default function App() {
           {/* Cursor coordinate readout */}
           {cursor && (
             <div className="pointer-events-none absolute bottom-3 left-3 z-[650]">
-              <div className="glass rounded px-3 py-1.5 text-[10px] tabular-nums text-cyan/80">
+              <div className="border border-cyan/25 bg-black/70 px-3 py-1.5 text-[10px] tabular-nums text-cyan/80">
                 <span className="text-slate-500">LAT</span> {cursor.lat.toFixed(4)}° &nbsp;
                 <span className="text-slate-500">LON</span> {cursor.lon.toFixed(4)}° &nbsp;
                 <span className="text-slate-500">Z</span> {cursor.zoom}
@@ -544,7 +536,7 @@ export default function App() {
 
           {searchAlert && (
             <div className="pointer-events-none absolute left-1/2 top-4 z-[850] -translate-x-1/2">
-              <div className="glass rounded border border-amber/40 bg-hud-bg/95 px-4 py-2 text-[11px] font-semibold text-amber shadow-lg">
+              <div className="border border-amber/40 bg-black/90 px-4 py-2 text-[11px] font-semibold text-amber shadow-lg">
                 {searchAlert}
               </div>
             </div>

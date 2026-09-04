@@ -56,7 +56,7 @@ export default function BottomBar({ logs, activeRadio, onClearRadio }: Props) {
   };
 
   return (
-    <div className="glass relative z-[700] border-t border-cyan/20 no-select">
+    <div className="relative z-[700] border-t border-cyan/25 bg-black/85 no-select">
       <audio ref={audioRef} crossOrigin="anonymous" />
 
       <div className="flex items-center gap-3 px-3 py-1.5">
@@ -137,7 +137,7 @@ export default function BottomBar({ logs, activeRadio, onClearRadio }: Props) {
 
       {/* Log stream */}
       {expanded && (
-        <div className="h-28 overflow-y-auto border-t border-cyan/10 bg-hud-bg/60 px-3 py-1.5 slide-up">
+        <div className="h-28 overflow-y-auto border-t border-cyan/10 bg-black/60 px-3 py-1.5 slide-up">
           <div className="space-y-0.5">
             {logs.length === 0 && (
               <div className="text-[10px] text-slate-600">No events. Awaiting telemetry...</div>

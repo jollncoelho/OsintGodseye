@@ -65,6 +65,8 @@ export type CctvCamera = BaseEntity & {
   location: string;
   snapshot: string;
   type: string;
+  source: string;
+  sourceUrl: string;
 };
 
 export type TerritoryIntel = {

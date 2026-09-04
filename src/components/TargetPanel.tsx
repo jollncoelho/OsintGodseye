@@ -3,7 +3,7 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink, Activity, Signal, AlertTriangle,
+  Eye, ExternalLink, Activity, Signal, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
@@ -281,26 +281,102 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
 }
 
 function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [imgError, setImgError] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
+
+  const handleRefresh = () => {
+    setImgError(false);
+    setRefreshKey((k) => k + 1);
+    setLastRefresh(Date.now());
+  };
+
+  const snapshotUrl = `${data.snapshot}?t=${refreshKey}`;
+
   return (
     <>
-      <div className="relative h-44 overflow-hidden border-b border-cyan/10 bg-hud-bg">
-        <img src={data.snapshot} alt={data.name} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-green">
-          {data.type}
+      {/* Header bar */}
+      <div className="border-b border-green/20 bg-green/5 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Camera className="h-3.5 w-3.5 text-green" />
+            <span className="text-[9px] font-bold tracking-[0.15em] text-green">CAM-{data.id.toUpperCase()} // {data.lat.toFixed(3)}, {data.lon.toFixed(3)} // SECURE UPLINK</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            title="Refresh snapshot"
+            className="flex items-center justify-center rounded border border-green/30 bg-green/10 p-1 text-green transition hover:bg-green/20"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
         </div>
-        <div className="absolute right-2 top-2 flex items-center gap-1 rounded bg-danger/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-white blink" /> REC
+      </div>
+
+      {/* Image container */}
+      <div className="relative h-52 overflow-hidden border-b border-green/10 bg-black">
+        {imgError ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <Camera className="h-10 w-10 text-green/30" />
+            <span className="text-[9px] text-slate-600">SIGNAL LOST — RETRYING...</span>
+            <button
+              onClick={handleRefresh}
+              className="rounded border border-green/30 bg-green/10 px-2 py-1 text-[8px] font-bold text-green transition hover:bg-green/20"
+            >
+              RECONNECT
+            </button>
+          </div>
+        ) : (
+          <img
+            key={refreshKey}
+            src={snapshotUrl}
+            alt={data.name}
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
+
+        {/* LIVE SAT-LINK badge */}
+        <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-green">
+          <span className="h-1.5 w-1.5 rounded-full bg-green blink" /> LIVE SAT-LINK
         </div>
+
+        {/* Camera type badge */}
+        <div className="absolute right-2 top-2 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan/80">
+          {data.type.toUpperCase()}
+        </div>
+
+        {/* Timestamp */}
+        <div className="absolute bottom-2 right-2 rounded bg-black/80 px-2 py-0.5 text-[7px] font-mono text-green/60">
+          {new Date(lastRefresh).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} UTC
+        </div>
+
         <div className="scan-line" />
       </div>
-      <Section title="CAMERA">
-        <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
-        <div className="text-[10px] text-slate-500">{data.location}</div>
-        <div className="mt-2">
-          <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
-          <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
-        </div>
+
+      {/* Title section */}
+      <div className="border-b border-cyan/10 px-3 py-2.5">
+        <div className="text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="mt-0.5 text-[9px] text-slate-500">{data.location}</div>
+        <div className="mt-1 text-[8px] font-bold tracking-wider text-green/60">SOURCE: {data.source}</div>
+      </div>
+
+      {/* Coordinates */}
+      <Section title="UPLINK COORDINATES">
+        <Field icon={<Compass className="h-3 w-3" />} label="LATITUDE" value={data.lat.toFixed(6)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LONGITUDE" value={data.lon.toFixed(6)} />
       </Section>
+
+      {/* Raw feed button */}
+      <div className="p-3">
+        <a
+          href={data.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded border border-green/40 bg-green/15 px-3 py-2.5 text-[10px] font-bold tracking-wider text-green transition hover:bg-green/25"
+        >
+          <ExternalLink className="h-4 w-4" /> RAW FEED
+        </a>
+      </div>
     </>
   );
 }

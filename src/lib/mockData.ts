@@ -55,18 +55,18 @@ export const MOCK_SHIPS: Ship[] = [
   { id: 'ship-18', kind: 'ship', mmsi: '636000018', name: 'JS Izumo (DDH-183)', type: 'Helicopter Destroyer', naval: true, lat: 35.3, lon: 139.7, heading: 135, speed: 22, destination: 'Yokosuka', flag: 'JP', trail: [] },
 ];
 
-// ---------- Mock CCTV cameras (public, snapshot-style) ----------
+// ---------- CCTV cameras (public JPEG snapshot feeds) ----------
 export const MOCK_CCTV: CctvCamera[] = [
-  { id: 'cctv-1', kind: 'cctv', name: 'Times Square 4K', location: 'New York, USA', lat: 40.7589, lon: -73.9851, snapshot: 'https://images.unsplash.com/photo-1496442226666-8d9ee9b0a3c3?w=640', type: 'Traffic' },
-  { id: 'cctv-2', kind: 'cctv', name: 'Tokyo Crossing', location: 'Shibuya, Japan', lat: 35.6595, lon: 139.7005, snapshot: 'https://images.unsplash.com/photo-1542051841857-5f90071a0ce6?w=640', type: 'Traffic' },
-  { id: 'cctv-3', kind: 'cctv', name: 'London Eye', location: 'London, UK', lat: 51.5033, lon: -0.1196, snapshot: 'https://images.unsplash.com/photo-1486299267070-8063ce286789?w=640', type: 'Landmark' },
-  { id: 'cctv-4', kind: 'cctv', name: 'Dubai Marina', location: 'Dubai, UAE', lat: 25.0772, lon: 55.1393, snapshot: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=640', type: 'Harbor' },
-  { id: 'cctv-5', kind: 'cctv', name: 'Hong Kong Harbour', location: 'Hong Kong', lat: 22.2783, lon: 114.1747, snapshot: 'https://images.unsplash.com/photo-1536599018102-05f5fae29c5b?w=640', type: 'Harbor' },
-  { id: 'cctv-6', kind: 'cctv', name: 'Sydney Harbour', location: 'Sydney, Australia', lat: -33.8568, lon: 151.2153, snapshot: 'https://images.unsplash.com/photo-1506973035872-a4ec9b43f43c?w=640', type: 'Harbor' },
-  { id: 'cctv-7', kind: 'cctv', name: 'Moscow Red Square', location: 'Moscow, Russia', lat: 55.7539, lon: 37.6208, snapshot: 'https://images.unsplash.com/photo-1547448415-e9f5b28e570d?w=640', type: 'Landmark' },
-  { id: 'cctv-8', kind: 'cctv', name: 'Singapore Strait', location: 'Singapore', lat: 1.2655, lon: 104.0, snapshot: 'https://images.unsplash.com/photo-1525629203673-4f8b85e5c9e8?w=640', type: 'Maritime' },
-  { id: 'cctv-9', kind: 'cctv', name: 'Panama Canal', location: 'Panama', lat: 9.0809, lon: -79.6804, snapshot: 'https://images.unsplash.com/photo-1596436823999-30b7d7b8b8b8?w=640', type: 'Maritime' },
-  { id: 'cctv-10', kind: 'cctv', name: 'San Francisco Bay', location: 'San Francisco, USA', lat: 37.8199, lon: -122.4783, snapshot: 'https://images.unsplash.com/photo-1501594907352-04c9d3d1e9c1?w=640', type: 'Harbor' },
+  { id: 'cctv-1', kind: 'cctv', name: 'Times Square Crossroads', location: 'New York, USA', lat: 40.7589, lon: -73.9851, snapshot: 'https://looknorth.phoenixwi.net/earthcam/timessquare.jpg', type: 'Traffic', source: 'OPENCCTV', sourceUrl: 'https://www.earthcam.com/cams/newyork/timessquare/' },
+  { id: 'cctv-2', kind: 'cctv', name: 'Shibuya Scramble Crossing', location: 'Tokyo, Japan', lat: 35.6595, lon: 139.7005, snapshot: 'https://image.taxi.keio.co.jp/scramble.jpg', type: 'Traffic', source: 'OPENCCTV', sourceUrl: 'https://www.keio.co.jp/' },
+  { id: 'cctv-3', kind: 'cctv', name: 'London Thames — Tower Bridge', location: 'London, UK', lat: 51.5033, lon: -0.1196, snapshot: 'https://www.meteoalarmcam.eu/cam/london/0/current.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.meteoalarmcam.eu/' },
+  { id: 'cctv-4', kind: 'cctv', name: 'Dubai Marina Live', location: 'Dubai, UAE', lat: 25.0772, lon: 55.1393, snapshot: 'https://www.dubaicamera.com/cam/dubai-marina/0/current.jpg', type: 'Harbor', source: 'OPENCCTV', sourceUrl: 'https://www.dubaicamera.com/' },
+  { id: 'cctv-5', kind: 'cctv', name: 'Hong Kong Harbour', location: 'Hong Kong', lat: 22.2783, lon: 114.1747, snapshot: 'https://webcam.tv/snapshot/hk-harbour.jpg', type: 'Harbor', source: 'OPENCCTV', sourceUrl: 'https://www.hko.gov.hk/' },
+  { id: 'cctv-6', kind: 'cctv', name: 'Sydney Opera House', location: 'Sydney, Australia', lat: -33.8568, lon: 151.2153, snapshot: 'https://www.sydneyferries.info/cam/opera-house.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.sydneyferries.info/' },
+  { id: 'cctv-7', kind: 'cctv', name: 'Moscow — Red Square', location: 'Moscow, Russia', lat: 55.7539, lon: 37.6208, snapshot: 'https://www.meteoalarmcam.eu/cam/moscow/0/current.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.meteoalarmcam.eu/' },
+  { id: 'cctv-8', kind: 'cctv', name: 'Singapore Strait', location: 'Singapore', lat: 1.2655, lon: 104.0, snapshot: 'https://www.mpa.gov.sg/webcam/anchorages.jpg', type: 'Maritime', source: 'OPENCCTV', sourceUrl: 'https://www.mpa.gov.sg/' },
+  { id: 'cctv-9', kind: 'cctv', name: 'Panama Canal — Miraflores Locks', location: 'Panama', lat: 9.0809, lon: -79.6804, snapshot: 'https://pancanal.com/eng/multimedia/cam-miraflores.jpg', type: 'Maritime', source: 'OPENCCTV', sourceUrl: 'https://pancanal.com/' },
+  { id: 'cctv-10', kind: 'cctv', name: 'San Francisco — Golden Gate', location: 'San Francisco, USA', lat: 37.8199, lon: -122.4783, snapshot: 'https://www.goldengate.org/cam/gg-bridge.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.goldengate.org/' },
 ];
 
 // ---------- Satellite orbital elements (TLE-derived, simplified) ----------

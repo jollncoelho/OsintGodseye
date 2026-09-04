@@ -51,11 +51,15 @@ export default function TargetPanel({ target, onClose }: Props) {
         </button>
       </div>
 
-      {/* Signal integrity bars */}
-      <SignalIntegrityBars kind={target.kind} />
+      {/* Signal integrity bars — vectors only */}
+      {(target.kind === 'aircraft' || target.kind === 'ship' || target.kind === 'satellite' || target.kind === 'radio' || target.kind === 'cctv') && (
+        <SignalIntegrityBars kind={target.kind} />
+      )}
 
-      {/* Thermal / NVG camera preview */}
-      <ThermalPreview kind={target.kind} lat={lat} lon={lon} target={target} />
+      {/* Thermal / NVG camera preview — vectors only */}
+      {(target.kind === 'aircraft' || target.kind === 'ship' || target.kind === 'satellite') && (
+        <ThermalPreview kind={target.kind} lat={lat} lon={lon} target={target} />
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {target.kind === 'aircraft' && <AircraftDetails data={target.data} />}
@@ -67,8 +71,8 @@ export default function TargetPanel({ target, onClose }: Props) {
         {target.kind === 'conflict' && <ConflictDetails data={target.data} />}
       </div>
 
-      {/* Street-Level View button — available for all targets with coordinates */}
-      <StreetLevelButton lat={lat} lon={lon} />
+      {/* Street-Level View button — territory only */}
+      {target.kind === 'territory' && <StreetLevelButton lat={lat} lon={lon} />}
     </div>
   );
 }
@@ -109,35 +113,42 @@ function Field({ icon, label, value, danger }: { icon: React.ReactNode; label: s
 
 function AircraftDetails({ data }: { data: import('@/types').Aircraft }) {
   const [photo, setPhoto] = useState<string | null>(null);
-  const [photoErr, setPhotoErr] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     setPhoto(null);
-    setPhotoErr(false);
+    setShowFallback(false);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      setShowFallback(true);
+    }, 1000);
     fetch(`https://api.planespotters.net/pub/photos/reg/${data.registration}`)
       .then((r) => r.json())
       .then((d) => {
+        if (timedOut) return;
         const p = d?.photos?.[0];
         if (p?.thumbnail?.src) setPhoto(p.thumbnail.src);
         else if (p?.link) setPhoto(p.link);
-        else setPhotoErr(true);
+        else setShowFallback(true);
       })
-      .catch(() => setPhotoErr(true));
+      .catch(() => setShowFallback(true))
+      .finally(() => clearTimeout(timer));
   }, [data.registration]);
 
   return (
     <>
-      {/* Photo */}
+      {/* Photo — 1s timeout then SVG fallback */}
       <div className="relative h-40 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         {photo ? (
-          <img src={photo} alt={data.model} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-        ) : photoErr ? (
-          <div className="flex h-full items-center justify-center">
-            <Plane className={`h-12 w-12 ${data.military ? 'text-danger' : 'text-cyan'} opacity-40`} />
+          <img src={photo} alt={data.model} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; setShowFallback(true); }} />
+        ) : showFallback ? (
+          <div className="flex h-full items-center justify-center bg-black">
+            <FlirCanvas mode="thermal" silhouetteType={data.helicopter ? 'helicopter' : data.military ? 'fighter' : 'commercial'} label={data.model ?? data.registration ?? 'AIRCRAFT'} />
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan/30 border-t-cyan" />
+          <div className="flex h-full items-center justify-center bg-black">
+            <FlirCanvas mode="thermal" silhouetteType={data.helicopter ? 'helicopter' : data.military ? 'fighter' : 'commercial'} label={data.model ?? data.registration ?? 'AIRCRAFT'} />
           </div>
         )}
         <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
@@ -299,7 +310,13 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
   const [loading, setLoading] = useState(!data.wikiSummary && !data.weather);
 
   useEffect(() => {
-    if (data.wikiSummary || data.weather) setLoading(false);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      setLoading(false);
+    }, 1500);
+    if (data.wikiSummary || data.weather) { setLoading(false); clearTimeout(timer); }
+    return () => clearTimeout(timer);
   }, [data]);
 
   const copyCoords = () => {
@@ -345,9 +362,9 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
         </div>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-6">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan/30 border-t-cyan" />
+      {loading && !data.wikiSummary && !data.weather && (
+        <div className="flex items-center justify-center py-4 text-[9px] text-slate-600">
+          Fetching intel...
         </div>
       )}
 
@@ -502,7 +519,7 @@ function SignalIntegrityBars({ kind }: { kind: string }) {
 function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number; lon: number; target: NonNullable<SelectedTarget> }) {
   const [mode, setMode] = useState<'thermal' | 'nvg'>('thermal');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [photoLoading, setPhotoLoading] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   const registration = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).registration : null;
   const aircraftModel = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).model : null;
@@ -514,17 +531,23 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
 
   useEffect(() => {
     setPhotoUrl(null);
+    setShowFallback(false);
     if (kind !== 'aircraft' || !registration) return;
-    setPhotoLoading(true);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      setShowFallback(true);
+    }, 1000);
     fetch(`https://api.planespotters.net/pub/photos/reg/${registration}`)
       .then((r) => r.json())
       .then((d) => {
+        if (timedOut) return;
         const p = d?.photos?.[0];
         if (p?.thumbnail?.src) setPhotoUrl(p.thumbnail.src);
         else if (p?.link) setPhotoUrl(p.link);
       })
       .catch(() => {})
-      .finally(() => setPhotoLoading(false));
+      .finally(() => clearTimeout(timer));
   }, [kind, registration]);
 
   const snapUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${lon - 0.008}%2C${lat - 0.005}%2C${lon + 0.008}%2C${lat + 0.005}&size=320%2C180&format=jpg&f=image`;
@@ -558,14 +581,12 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
       <div className={`relative h-20 overflow-hidden rounded border border-cyan/15 ${mode === 'thermal' ? 'shader-thermal' : 'shader-nvg'}`}>
         {kind === 'aircraft' && photoUrl ? (
           <img src={photoUrl} alt={aircraftModel ?? 'Aircraft'} className="h-full w-full object-cover" onError={() => setPhotoUrl(null)} />
-        ) : kind === 'aircraft' && photoLoading ? (
-          <div className="flex h-full items-center justify-center bg-black">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />
-          </div>
         ) : kind === 'aircraft' ? (
           <FlirCanvas mode={mode} silhouetteType={isHelicopter ? 'helicopter' : isMilitary ? 'fighter' : 'commercial'} label={aircraftModel ?? registration ?? 'AIRCRAFT'} />
         ) : kind === 'satellite' ? (
           <FlirCanvas mode={mode} silhouetteType="satellite" label={satName ?? satCategory ?? 'SATELLITE'} altitude={satAltitude} />
+        ) : kind === 'ship' ? (
+          <FlirCanvas mode={mode} silhouetteType="ship" label={(target.data as import('@/types').Ship).name ?? 'VESSEL'} />
         ) : (
           <img src={snapUrl} alt="Thermal preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         )}
@@ -578,7 +599,7 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
   );
 }
 
-function FlirCanvas({ mode, silhouetteType, label, altitude }: { mode: 'thermal' | 'nvg'; silhouetteType: 'helicopter' | 'fighter' | 'commercial' | 'satellite'; label: string; altitude?: number | null }) {
+function FlirCanvas({ mode, silhouetteType, label, altitude }: { mode: 'thermal' | 'nvg'; silhouetteType: 'helicopter' | 'fighter' | 'commercial' | 'satellite' | 'ship'; label: string; altitude?: number | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -720,6 +741,38 @@ function FlirCanvas({ mode, silhouetteType, label, altitude }: { mode: 'thermal'
         ctx.beginPath();
         ctx.arc(cx + 28, cy, 3, 0, Math.PI * 2);
         ctx.stroke();
+      } else if (silhouetteType === 'ship') {
+        // Ship hull wireframe
+        ctx.beginPath();
+        ctx.moveTo(cx - 20, cy + 6);
+        ctx.lineTo(cx + 16, cy + 6);
+        ctx.lineTo(cx + 20, cy + 2);
+        ctx.lineTo(cx - 16, cy + 2);
+        ctx.closePath();
+        ctx.stroke();
+        // Superstructure
+        ctx.beginPath();
+        ctx.rect(cx - 6, cy - 6, 12, 8);
+        ctx.stroke();
+        // Mast
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 6);
+        ctx.lineTo(cx, cy - 14);
+        ctx.stroke();
+        // Wake
+        const wakeAlpha = Math.sin(frame * 0.06) * 0.2 + 0.2;
+        ctx.strokeStyle = mode === 'thermal'
+          ? `rgba(251, 191, 36, ${wakeAlpha})`
+          : `rgba(45, 255, 170, ${wakeAlpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(cx - 20, cy + 8);
+        ctx.lineTo(cx - 30, cy + 10);
+        ctx.moveTo(cx - 20, cy + 10);
+        ctx.lineTo(cx - 32, cy + 14);
+        ctx.stroke();
+        ctx.setLineDash([]);
       } else {
         // Fixed-wing silhouette (fighter or commercial)
         const span = 26;

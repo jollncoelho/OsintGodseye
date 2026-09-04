@@ -281,7 +281,6 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
 }
 
 function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
-  const [refreshKey, setRefreshKey] = useState(0);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
@@ -289,11 +288,10 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
   const handleRefresh = () => {
     setImgError(false);
     setImgLoaded(false);
-    setRefreshKey((k) => k + 1);
     setLastRefresh(Date.now());
   };
 
-  const snapshotUrl = `${data.imgUrl}?t=${refreshKey}`;
+  const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(data.imgUrl)}&default=1`;
 
   return (
     <>
@@ -317,22 +315,22 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
       {/* Image container */}
       <div className="relative h-52 overflow-hidden border-b border-green/10 bg-black">
         {imgError ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2">
-            <Camera className="h-10 w-10 text-green/30" />
-            <span className="text-[9px] text-slate-600">SIGNAL LOST</span>
-            <button
-              onClick={handleRefresh}
-              className="rounded border border-green/30 bg-green/10 px-2 py-1 text-[8px] font-bold text-green transition hover:bg-green/20"
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <FlirCanvas mode="thermal" silhouetteType="commercial" label={data.name} />
+            <a
+              href={data.imgUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded border border-green/40 bg-green/10 px-3 py-1.5 text-[9px] font-bold text-green transition hover:bg-green/20"
             >
-              RETRY
-            </button>
+              <ExternalLink className="h-3.5 w-3.5" /> OPEN DIRECT CAM
+            </a>
           </div>
         ) : (
           <img
-            key={refreshKey}
-            src={snapshotUrl}
+            src={proxyUrl}
             alt={data.name}
-            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
             loading="lazy"
             className="h-full w-full object-cover"
             onLoad={() => setImgLoaded(true)}

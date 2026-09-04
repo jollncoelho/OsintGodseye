@@ -184,18 +184,10 @@ export default function App() {
     setLayers((prev) => ({ ...prev, [k]: !prev[k] }));
   }, []);
 
-  const handleMapClick = useCallback(async (lat: number, lon: number, zoom: number) => {
-    setReticle([lat, lon]);
-    addLog('info', `Designating target at ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-    setSelected({ kind: 'territory', data: { id: `territory-${lat.toFixed(4)}-${lon.toFixed(4)}`, kind: 'territory', lat, lon, displayName: 'Resolving location...', country: 'Unknown', countryCode: '??' } });
-    try {
-      const intel = await fetchTerritory(lat, lon, zoom);
-      setSelected({ kind: 'territory', data: intel });
-      addLog('info', `Territory intel: ${intel.displayName} (${intel.country})`);
-    } catch {
-      addLog('alert', `Reverse geocoding failed for ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-    }
-  }, [fetchTerritory, addLog]);
+  const handleMapClick = useCallback(async (_lat: number, _lon: number, _zoom: number) => {
+    setSelected(null);
+    setReticle(null);
+  }, []);
 
   const handleMapContextMenu = useCallback(async (lat: number, lon: number, zoom: number) => {
     setReticle([lat, lon]);
@@ -228,10 +220,11 @@ export default function App() {
     setIs3DActive((prev) => {
       const next = !prev;
       if (next) {
-        setPitch(15);
+        setPitch(0);
+        setBearing(0);
         setTerrainEnabled(true);
         setHillshadeEnabled(true);
-        addLog('info', '3D tactical view engaged — pitch 15°, terrain armed');
+        addLog('info', '3D globe view engaged — pitch 0°, terrain armed');
       } else {
         setPitch(0);
         setBearing(0);

@@ -161,8 +161,8 @@ export default function MapView3D({
           },
       center: [20, 10],
       zoom: 1.8,
-      pitch: pitch,
-      bearing: bearing,
+      pitch: 0,
+      bearing: 0,
       maxZoom: ts.maxZoom,
       minZoom: 1,
       hash: false,
@@ -291,6 +291,13 @@ export default function MapView3D({
     map.easeTo({ pitch, bearing, duration: 500 });
   }, [pitch, bearing, mapReady]);
 
+  // Re-center globe perfectly on activation
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    map.jumpTo({ center: [20, 10], zoom: 1.8, pitch: 0, bearing: 0 });
+  }, [mapReady]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -321,7 +328,7 @@ export default function MapView3D({
     map.flyTo({
       center: [flyTo[1], flyTo[0]],
       zoom: flyTo[2] ?? Math.max(map.getZoom(), 8),
-      pitch: Math.max(map.getPitch(), 45),
+      pitch: Math.max(map.getPitch(), 30),
       bearing: map.getBearing(),
       duration: 2000,
       essential: true,

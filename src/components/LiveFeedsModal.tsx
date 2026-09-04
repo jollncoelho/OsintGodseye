@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Satellite, Radio, Cloud, ExternalLink, AlertCircle } from 'lucide-react';
+import { X, Satellite, Radio, Cloud, ExternalLink, AlertCircle, Radio as RadioIcon } from 'lucide-react';
 import type { LiveFeed } from '@/types';
 
 const LIVE_FEEDS: LiveFeed[] = [
@@ -7,15 +7,23 @@ const LIVE_FEEDS: LiveFeed[] = [
     id: 'feed-iss',
     name: 'ISS Live — Earth from Space',
     category: 'space',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/live_stream?channel=UCkJyv4LzU54Mh_uN6pL5UfA',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/H999s0P1Er0',
+    externalUrl: 'https://www.youtube.com/watch?v=H999s0P1Er0',
+    description: 'Live HD camera feed from the International Space Station (NASA)',
+  },
+  {
+    id: 'feed-iss-uhf',
+    name: 'ISS Live — UHF Video',
+    category: 'space',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/21X5lGlDOfg',
     externalUrl: 'https://www.youtube.com/watch?v=21X5lGlDOfg',
-    description: 'Live HD camera feed from the International Space Station',
+    description: 'Alternate ISS live stream via YouTube',
   },
   {
     id: 'feed-skynews',
     name: 'Sky News Live',
     category: 'news',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/live_stream?channel=UCoMdktPbSTkAy7bn0QqS7Og',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/YoD6T9D2ckU',
     externalUrl: 'https://www.youtube.com/watch?v=YoD6T9D2ckU',
     description: '24/7 UK and world news coverage',
   },
@@ -23,7 +31,7 @@ const LIVE_FEEDS: LiveFeed[] = [
     id: 'feed-france24',
     name: 'France 24 English Live',
     category: 'news',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/live_stream?channel=UCQfwfsi5VrQ8yK3qJf2dLrQ',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/L9O3xUc8kXM',
     externalUrl: 'https://www.youtube.com/watch?v=L9O3xUc8kXM',
     description: 'French international news, 24/7 English broadcast',
   },
@@ -31,7 +39,7 @@ const LIVE_FEEDS: LiveFeed[] = [
     id: 'feed-aljazeera',
     name: 'Al Jazeera English Live',
     category: 'news',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/live_stream?channel=UCNye-wNBqNb5h4kO9wO5mUQ',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/gCNeDWCI0bo',
     externalUrl: 'https://www.youtube.com/watch?v=gCNeDWCI0bo',
     description: 'Qatar-based international news network',
   },
@@ -39,8 +47,8 @@ const LIVE_FEEDS: LiveFeed[] = [
     id: 'feed-dw',
     name: 'DW News Live',
     category: 'news',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/live_stream?channel=UCknLrEdhRCp1a-goAD_mVgOQ',
-    externalUrl: 'https://www.youtube.com/watch?v=J5c8n3k3k3k',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/w8q5QLaiWkg',
+    externalUrl: 'https://www.youtube.com/watch?v=w8q5QLaiWkg',
     description: 'Deutsche Welle — German international news',
   },
   {
@@ -141,17 +149,21 @@ export default function LiveFeedsModal({ onClose }: Props) {
                       <div className="text-sm font-bold text-slate-100">{activeFeed.name}</div>
                       <div className="text-[10px] text-slate-500">{activeFeed.description}</div>
                     </div>
-                    {/* Always-visible fallback button */}
-                    <a
-                      href={activeFeed.externalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded border border-cyan/40 bg-cyan/15 px-3 py-1.5 text-[10px] font-bold text-cyan transition hover:bg-cyan/25"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> OPEN IN NEW TAB
-                    </a>
                   </div>
                 </div>
+
+                {/* Fallback banner — always visible above the player */}
+                <a
+                  href={activeFeed.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 border-b border-cyan/10 bg-red-500/10 px-4 py-2 text-[10px] font-bold tracking-wider text-red-400 transition hover:bg-red-500/20"
+                >
+                  <span className="h-2 w-2 rounded-full bg-red-500 blink" />
+                  LIEN DIRECT FLUX OFFICIEL — OUVRIR DANS UN NOUVEL ONGLET
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+
                 <div className="relative flex-1 overflow-hidden bg-black">
                   {activeFeed.embedUrl ? (
                     <iframe
@@ -188,7 +200,7 @@ export default function LiveFeedsModal({ onClose }: Props) {
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
-                <Satellite className="h-16 w-16 text-cyan/20" />
+                <RadioIcon className="h-16 w-16 text-cyan/20" />
                 <div className="text-center">
                   <div className="text-sm font-bold text-slate-400">Select a channel</div>
                   <div className="mt-1 text-[10px] text-slate-600">

@@ -15,10 +15,19 @@ type Props = {
 };
 
 export default function TargetPanel({ target, onClose }: Props) {
-  if (!target) return null;
+  const lat = target ? (target.data as { lat: number }).lat : 0;
+  const lon = target ? (target.data as { lon: number }).lon : 0;
 
-  const lat = (target.data as { lat: number }).lat;
-  const lon = (target.data as { lon: number }).lon;
+  useEffect(() => {
+    if (!target) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [target, onClose]);
+
+  if (!target) return null;
 
   return (
     <div className="slide-up absolute right-3 top-3 z-[800] flex h-[calc(100%-1.5rem)] w-80 flex-col overflow-hidden border border-cyan/40 bg-black/85 backdrop-blur-md no-select">
@@ -33,8 +42,12 @@ export default function TargetPanel({ target, onClose }: Props) {
           <TargetIcon kind={target.kind} />
           <div className="text-[10px] font-bold tracking-[0.2em] text-cyan">TARGET ACQUIRED</div>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-danger">
-          <X className="h-4 w-4" />
+        <button
+          onClick={onClose}
+          className="flex items-center justify-center rounded p-2 text-slate-400 transition hover:bg-red-500/20 hover:text-red-400 cursor-pointer"
+          title="Close (Esc)"
+        >
+          <X className="h-5 w-5" />
         </button>
       </div>
 
@@ -447,6 +460,9 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
   const aircraftModel = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).model : null;
   const isHelicopter = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).helicopter : false;
   const isMilitary = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).military : false;
+  const satName = kind === 'satellite' ? (target.data as import('@/types').Satellite).name : null;
+  const satCategory = kind === 'satellite' ? (target.data as import('@/types').Satellite).category : null;
+  const satAltitude = kind === 'satellite' ? (target.data as import('@/types').Satellite).altitude : null;
 
   useEffect(() => {
     setPhotoUrl(null);
@@ -470,7 +486,7 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
       <div className="mb-1.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Thermometer className="h-3 w-3 text-amber/70" />
-          <span className="text-[8px] font-bold tracking-[0.2em] text-amber/60">CAMERA FEED</span>
+          <span className="text-[8px] font-bold tracking-[0.2em] text-amber/60">CAMERA FEED // FLIR - PREVIEW</span>
         </div>
         <div className="flex gap-1">
           <button
@@ -499,7 +515,9 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />
           </div>
         ) : kind === 'aircraft' ? (
-          <FlirCanvas mode={mode} isHelicopter={isHelicopter} isMilitary={isMilitary} label={aircraftModel ?? registration ?? 'AIRCRAFT'} />
+          <FlirCanvas mode={mode} silhouetteType={isHelicopter ? 'helicopter' : isMilitary ? 'fighter' : 'commercial'} label={aircraftModel ?? registration ?? 'AIRCRAFT'} />
+        ) : kind === 'satellite' ? (
+          <FlirCanvas mode={mode} silhouetteType="satellite" label={satName ?? satCategory ?? 'SATELLITE'} altitude={satAltitude} />
         ) : (
           <img src={snapUrl} alt="Thermal preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         )}
@@ -512,7 +530,7 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
   );
 }
 
-function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal' | 'nvg'; isHelicopter: boolean; isMilitary: boolean; label: string }) {
+function FlirCanvas({ mode, silhouetteType, label, altitude }: { mode: 'thermal' | 'nvg'; silhouetteType: 'helicopter' | 'fighter' | 'commercial' | 'satellite'; label: string; altitude?: number | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -569,7 +587,7 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       }
 
-      // Aircraft wireframe silhouette
+      // Wireframe silhouette
       const cx = w / 2;
       const cy = h / 2;
       const pulse = Math.sin(frame * 0.05) * 0.15 + 0.85;
@@ -580,7 +598,59 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
       ctx.strokeStyle = wireColor;
       ctx.lineWidth = 1.2;
 
-      if (isHelicopter) {
+      if (silhouetteType === 'satellite') {
+        // Satellite wireframe: body + solar panels + antenna
+        // Main body
+        ctx.beginPath();
+        ctx.rect(cx - 8, cy - 5, 16, 10);
+        ctx.stroke();
+        // Solar panels (left)
+        ctx.beginPath();
+        ctx.rect(cx - 24, cy - 3, 14, 6);
+        ctx.stroke();
+        // Solar panel grid lines (left)
+        for (let i = 1; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cx - 24 + i * 3.5, cy - 3);
+          ctx.lineTo(cx - 24 + i * 3.5, cy + 3);
+          ctx.stroke();
+        }
+        // Solar panels (right)
+        ctx.beginPath();
+        ctx.rect(cx + 10, cy - 3, 14, 6);
+        ctx.stroke();
+        // Solar panel grid lines (right)
+        for (let i = 1; i < 4; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cx + 10 + i * 3.5, cy - 3);
+          ctx.lineTo(cx + 10 + i * 3.5, cy + 3);
+          ctx.stroke();
+        }
+        // Antenna dish
+        ctx.beginPath();
+        ctx.arc(cx, cy - 8, 4, 0, Math.PI, true);
+        ctx.stroke();
+        // Communication beam (pulsing)
+        const beamAlpha = Math.sin(frame * 0.08) * 0.3 + 0.3;
+        ctx.strokeStyle = mode === 'thermal'
+          ? `rgba(251, 191, 36, ${beamAlpha})`
+          : `rgba(45, 255, 170, ${beamAlpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 12);
+        ctx.lineTo(cx, cy - 24);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Orbital path arc
+        ctx.strokeStyle = mode === 'thermal'
+          ? 'rgba(251, 191, 36, 0.15)'
+          : 'rgba(45, 255, 170, 0.15)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 20, 40, Math.PI + 0.3, Math.PI * 2 - 0.3);
+        ctx.stroke();
+      } else if (silhouetteType === 'helicopter') {
         // Helicopter silhouette: body + rotor
         ctx.beginPath();
         ctx.ellipse(cx, cy + 4, 14, 6, 0, 0, Math.PI * 2);
@@ -603,7 +673,7 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
         ctx.arc(cx + 28, cy, 3, 0, Math.PI * 2);
         ctx.stroke();
       } else {
-        // Fixed-wing silhouette
+        // Fixed-wing silhouette (fighter or commercial)
         const span = 26;
         // Fuselage
         ctx.beginPath();
@@ -623,8 +693,8 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
         ctx.lineTo(cx + 18, cy - 5);
         ctx.lineTo(cx + 18, cy + 5);
         ctx.stroke();
-        // Nose
-        if (isMilitary) {
+        // Nose (fighter: pointed, commercial: rounded)
+        if (silhouetteType === 'fighter') {
           ctx.beginPath();
           ctx.moveTo(cx - 16, cy);
           ctx.lineTo(cx - 20, cy - 2);
@@ -648,6 +718,13 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
       ctx.font = '7px monospace';
       ctx.fillText(label.slice(0, 20), 4, h - 4);
 
+      // Altitude for satellites
+      if (silhouetteType === 'satellite' && altitude != null) {
+        ctx.fillStyle = mode === 'thermal' ? 'rgba(251, 191, 36, 0.5)' : 'rgba(45, 255, 170, 0.5)';
+        ctx.font = '6px monospace';
+        ctx.fillText(`APOGEE: ${Math.round(altitude)} km`, 4, 8);
+      }
+
       animId = requestAnimationFrame(draw);
     };
 
@@ -655,7 +732,7 @@ function FlirCanvas({ mode, isHelicopter, isMilitary, label }: { mode: 'thermal'
     canvas.height = 80;
     draw();
     return () => cancelAnimationFrame(animId);
-  }, [mode, isHelicopter, isMilitary, label]);
+  }, [mode, silhouetteType, label, altitude]);
 
   return <canvas ref={canvasRef} className="h-full w-full" />;
 }

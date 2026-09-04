@@ -246,6 +246,7 @@ export default function App() {
         t.kind === 'satellite' ? t.data.name :
         t.kind === 'radio' ? t.data.name :
         t.kind === 'cctv' ? t.data.name :
+        t.kind === 'conflict' ? t.data.name :
         t.data.displayName;
       addLog('info', `Target acquired: ${t.kind.toUpperCase()} ${name}`);
       if (t.kind === 'radio') setActiveRadio(t.data);

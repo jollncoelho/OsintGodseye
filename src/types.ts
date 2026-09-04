@@ -114,6 +114,7 @@ export type SelectedTarget =
   | { kind: 'satellite'; data: Satellite }
   | { kind: 'radio'; data: RadioStation }
   | { kind: 'cctv'; data: CctvCamera }
+  | { kind: 'conflict'; data: StrategicPoint }
   | { kind: 'territory'; data: TerritoryIntel }
   | null;
 

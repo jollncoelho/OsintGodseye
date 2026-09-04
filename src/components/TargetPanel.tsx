@@ -3,7 +3,7 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink, Activity, Signal,
+  Eye, ExternalLink, Activity, Signal, AlertTriangle,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
@@ -64,6 +64,7 @@ export default function TargetPanel({ target, onClose }: Props) {
         {target.kind === 'radio' && <RadioDetails data={target.data} />}
         {target.kind === 'cctv' && <CctvDetails data={target.data} />}
         {target.kind === 'territory' && <TerritoryDetails data={target.data} />}
+        {target.kind === 'conflict' && <ConflictDetails data={target.data} />}
       </div>
 
       {/* Street-Level View button — available for all targets with coordinates */}
@@ -79,6 +80,7 @@ function TargetIcon({ kind }: { kind: string }) {
   if (kind === 'satellite') return <Satellite className={cls} />;
   if (kind === 'radio') return <Radio className={cls} />;
   if (kind === 'territory') return <Globe className={cls} />;
+  if (kind === 'conflict') return <AlertTriangle className="h-4 w-4 text-danger" />;
   return <Camera className={cls} />;
 }
 
@@ -128,7 +130,7 @@ function AircraftDetails({ data }: { data: import('@/types').Aircraft }) {
       {/* Photo */}
       <div className="relative h-40 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         {photo ? (
-          <img src={photo} alt={data.model} className="h-full w-full object-cover" />
+          <img src={photo} alt={data.model} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         ) : photoErr ? (
           <div className="flex h-full items-center justify-center">
             <Plane className={`h-12 w-12 ${data.military ? 'text-danger' : 'text-cyan'} opacity-40`} />
@@ -242,7 +244,7 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
       <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         <div className="flex h-full items-center justify-center gap-3">
           {data.favicon ? (
-            <img src={data.favicon} alt="" className="h-16 w-16 rounded border border-cyan/20 object-cover" />
+            <img src={data.favicon} alt="" className="h-16 w-16 rounded border border-cyan/20 object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           ) : (
             <RadioIcon className="h-14 w-14 text-purple-400 opacity-60" />
           )}
@@ -271,7 +273,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
   return (
     <>
       <div className="relative h-44 overflow-hidden border-b border-cyan/10 bg-hud-bg">
-        <img src={data.snapshot} alt={data.name} className="h-full w-full object-cover" />
+        <img src={data.snapshot} alt={data.name} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-green">
           {data.type}
         </div>
@@ -314,7 +316,7 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
       {/* Photo */}
       <div className="relative h-40 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         {data.primaryImage ? (
-          <img src={data.primaryImage} alt={data.displayName} className="h-full w-full object-cover" />
+          <img src={data.primaryImage} alt={data.displayName} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         ) : (
           <div className="flex h-full items-center justify-center">
             <Globe className="h-12 w-12 text-cyan opacity-30" />
@@ -335,7 +337,7 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
       {/* Header: name + flag */}
       <div className="flex items-center gap-2.5 border-b border-cyan/10 px-3 py-2.5">
         {data.countryCode !== '??' && (
-          <img src={flagUrl} alt={data.countryCode} className="h-6 w-8 rounded-sm border border-cyan/20 object-cover" />
+          <img src={flagUrl} alt={data.countryCode} className="h-6 w-8 rounded-sm border border-cyan/20 object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         )}
         <div className="flex-1">
           <div className="text-sm font-bold text-slate-100">{data.displayName}</div>
@@ -401,6 +403,52 @@ function TerritoryDetails({ data }: { data: import('@/types').TerritoryIntel }) 
         >
           <Copy className="h-3.5 w-3.5" /> {copied ? 'Copied!' : 'Copy GPS'}
         </button>
+      </div>
+    </>
+  );
+}
+
+function ConflictDetails({ data }: { data: import('@/types').StrategicPoint }) {
+  const severity = data.status.includes('ACTIVE') ? 'CRITICAL' : 'HIGH SEVERITY';
+  const severityColor = data.status.includes('ACTIVE') ? 'text-danger' : 'text-amber';
+
+  return (
+    <>
+      <div className="relative h-32 overflow-hidden border-b border-danger/20 bg-hud-bg">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <AlertTriangle className="h-16 w-16 text-danger opacity-50" />
+        </div>
+        <div className="absolute inset-0 bg-danger/5" />
+        <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-danger">
+          <span className="h-1.5 w-1.5 rounded-full bg-danger blink" /> CONFLICT ZONE
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <div className="border-b border-danger/20 bg-danger/5 px-3 py-2.5">
+        <div className="text-[9px] font-bold tracking-[0.2em] text-danger/80">CONFLICT ZONE // ACTIVE INCIDENT</div>
+        <div className="mt-1 text-sm font-bold text-slate-100">{data.name}</div>
+        <div className={`mt-0.5 text-[10px] font-bold ${severityColor}`}>{severity}</div>
+      </div>
+
+      <Section title="SITUATION">
+        <div className="text-[10px] leading-relaxed text-slate-400">{data.description}</div>
+        <div className="mt-2">
+          <Field icon={<AlertTriangle className="h-3 w-3" />} label="STATUS" value={data.status} danger />
+          <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+          <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+        </div>
+      </Section>
+
+      <div className="p-3">
+        <a
+          href="https://liveuamap.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded border border-danger/40 bg-danger/15 px-3 py-2.5 text-[10px] font-bold text-danger transition hover:bg-danger/25"
+        >
+          <ExternalLink className="h-4 w-4" /> OPEN SITUATION MAP
+        </a>
       </div>
     </>
   );

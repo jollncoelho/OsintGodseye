@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, Circle, Crosshair, LocateFixed, Navigation, Search } from 'lucide-react';
+import { Activity, Circle, Crosshair, LocateFixed, Navigation, Search, Github, Star } from 'lucide-react';
 import { formatUTC, formatUTCDate } from '@/lib/format';
 
 export type SearchResultItem = {
@@ -123,6 +123,18 @@ export default function TopBar({
         <div className="flex shrink-0 items-center gap-1 border border-green/30 bg-green/10 px-2 py-2 text-[8px] font-semibold text-green">
           <Activity className="h-3 w-3 blink" /> LIVE
         </div>
+
+        <a
+          href="https://github.com/jollncoelho/OsintGodseye"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="GitHub Repository"
+          className="flex shrink-0 items-center gap-1.5 border border-cyan/30 bg-black/60 px-2.5 py-2 text-[8px] font-bold tracking-wider text-cyan transition hover:bg-cyan/15"
+        >
+          <Github className="h-3.5 w-3.5" />
+          <Star className="h-3 w-3 fill-cyan text-cyan" />
+          STAR
+        </a>
       </div>
     </header>
   );

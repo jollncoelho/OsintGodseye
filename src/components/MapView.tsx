@@ -205,15 +205,19 @@ export default function MapView({
             }
             eventHandlers={{
               click: () => {
-                onSelect({ kind: 'territory', data: {
-                  id: pt.id,
-                  kind: 'territory',
-                  lat: pt.lat,
-                  lon: pt.lon,
-                  displayName: pt.name,
-                  country: pt.status,
-                  countryCode: '??',
-                } });
+                if (pt.category === 'conflict_zone') {
+                  onSelect({ kind: 'conflict', data: pt });
+                } else {
+                  onSelect({ kind: 'territory', data: {
+                    id: pt.id,
+                    kind: 'territory',
+                    lat: pt.lat,
+                    lon: pt.lon,
+                    displayName: pt.name,
+                    country: pt.status,
+                    countryCode: '??',
+                  } });
+                }
               },
             }}
           />

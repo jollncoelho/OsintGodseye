@@ -251,3 +251,8 @@ body,
 
 .text-glow { text-shadow: 0 0 8px currentColor; }
 .no-select { user-select: none; }
+
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

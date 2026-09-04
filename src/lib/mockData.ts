@@ -57,16 +57,51 @@ export const MOCK_SHIPS: Ship[] = [
 
 // ---------- CCTV cameras (public JPEG snapshot feeds) ----------
 export const MOCK_CCTV: CctvCamera[] = [
-  { id: 'cctv-1', kind: 'cctv', name: 'Times Square Crossroads', location: 'New York, USA', lat: 40.7589, lon: -73.9851, snapshot: 'https://looknorth.phoenixwi.net/earthcam/timessquare.jpg', type: 'Traffic', source: 'OPENCCTV', sourceUrl: 'https://www.earthcam.com/cams/newyork/timessquare/' },
-  { id: 'cctv-2', kind: 'cctv', name: 'Shibuya Scramble Crossing', location: 'Tokyo, Japan', lat: 35.6595, lon: 139.7005, snapshot: 'https://image.taxi.keio.co.jp/scramble.jpg', type: 'Traffic', source: 'OPENCCTV', sourceUrl: 'https://www.keio.co.jp/' },
-  { id: 'cctv-3', kind: 'cctv', name: 'London Thames — Tower Bridge', location: 'London, UK', lat: 51.5033, lon: -0.1196, snapshot: 'https://www.meteoalarmcam.eu/cam/london/0/current.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.meteoalarmcam.eu/' },
-  { id: 'cctv-4', kind: 'cctv', name: 'Dubai Marina Live', location: 'Dubai, UAE', lat: 25.0772, lon: 55.1393, snapshot: 'https://www.dubaicamera.com/cam/dubai-marina/0/current.jpg', type: 'Harbor', source: 'OPENCCTV', sourceUrl: 'https://www.dubaicamera.com/' },
-  { id: 'cctv-5', kind: 'cctv', name: 'Hong Kong Harbour', location: 'Hong Kong', lat: 22.2783, lon: 114.1747, snapshot: 'https://webcam.tv/snapshot/hk-harbour.jpg', type: 'Harbor', source: 'OPENCCTV', sourceUrl: 'https://www.hko.gov.hk/' },
-  { id: 'cctv-6', kind: 'cctv', name: 'Sydney Opera House', location: 'Sydney, Australia', lat: -33.8568, lon: 151.2153, snapshot: 'https://www.sydneyferries.info/cam/opera-house.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.sydneyferries.info/' },
-  { id: 'cctv-7', kind: 'cctv', name: 'Moscow — Red Square', location: 'Moscow, Russia', lat: 55.7539, lon: 37.6208, snapshot: 'https://www.meteoalarmcam.eu/cam/moscow/0/current.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.meteoalarmcam.eu/' },
-  { id: 'cctv-8', kind: 'cctv', name: 'Singapore Strait', location: 'Singapore', lat: 1.2655, lon: 104.0, snapshot: 'https://www.mpa.gov.sg/webcam/anchorages.jpg', type: 'Maritime', source: 'OPENCCTV', sourceUrl: 'https://www.mpa.gov.sg/' },
-  { id: 'cctv-9', kind: 'cctv', name: 'Panama Canal — Miraflores Locks', location: 'Panama', lat: 9.0809, lon: -79.6804, snapshot: 'https://pancanal.com/eng/multimedia/cam-miraflores.jpg', type: 'Maritime', source: 'OPENCCTV', sourceUrl: 'https://pancanal.com/' },
-  { id: 'cctv-10', kind: 'cctv', name: 'San Francisco — Golden Gate', location: 'San Francisco, USA', lat: 37.8199, lon: -122.4783, snapshot: 'https://www.goldengate.org/cam/gg-bridge.jpg', type: 'Landmark', source: 'OPENCCTV', sourceUrl: 'https://www.goldengate.org/' },
+  // --- North America ---
+  { id: 'cam-01', kind: 'cctv', name: 'Times Square Crossroads', location: 'New York, USA', lat: 40.7589, lon: -73.9851, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/timessquare.jpg', type: 'Traffic' },
+  { id: 'cam-02', kind: 'cctv', name: 'NYC 5th Avenue', location: 'New York, USA', lat: 40.7549, lon: -73.9840, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/5thave.jpg', type: 'Traffic' },
+  { id: 'cam-03', kind: 'cctv', name: 'San Francisco Golden Gate', location: 'San Francisco, USA', lat: 37.8199, lon: -122.4783, imgUrl: 'https://www.goldengate.org/cam/gg-bridge.jpg', type: 'Landmark' },
+  { id: 'cam-04', kind: 'cctv', name: 'Hollywood Blvd', location: 'Los Angeles, USA', lat: 34.1016, lon: -118.3387, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/hollywood.jpg', type: 'Traffic' },
+  { id: 'cam-05', kind: 'cctv', name: 'Las Vegas Strip', location: 'Las Vegas, USA', lat: 36.1147, lon: -115.1728, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/lasvegas.jpg', type: 'Traffic' },
+  { id: 'cam-06', kind: 'cctv', name: 'Chicago Navy Pier', location: 'Chicago, USA', lat: 41.8917, lon: -87.6086, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/navypier.jpg', type: 'Landmark' },
+  { id: 'cam-07', kind: 'cctv', name: 'Miami South Beach', location: 'Miami, USA', lat: 25.7907, lon: -80.1300, imgUrl: 'https://looknorth.phoenixwi.net/earthcam/miami.jpg', type: 'Beach' },
+  { id: 'cam-08', kind: 'cctv', name: 'Toronto Harbourfront', location: 'Toronto, Canada', lat: 43.6404, lon: -79.3779, imgUrl: 'https://www.torontoharbourcam.com/harbour.jpg', type: 'Harbor' },
+  // --- Europe ---
+  { id: 'cam-09', kind: 'cctv', name: 'London Tower Bridge', location: 'London, UK', lat: 51.5033, lon: -0.1196, imgUrl: 'https://www.meteoalarmcam.eu/cam/london/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-10', kind: 'cctv', name: 'London Trafalgar Square', location: 'London, UK', lat: 51.5080, lon: -0.1281, imgUrl: 'https://www.meteoalarmcam.eu/cam/london/1/current.jpg', type: 'Traffic' },
+  { id: 'cam-11', kind: 'cctv', name: 'Paris Eiffel Tower', location: 'Paris, France', lat: 48.8584, lon: 2.2945, imgUrl: 'https://www.meteoalarmcam.eu/cam/paris/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-12', kind: 'cctv', name: 'Paris Champs-Elysees', location: 'Paris, France', lat: 48.8698, lon: 2.3079, imgUrl: 'https://www.meteoalarmcam.eu/cam/paris/1/current.jpg', type: 'Traffic' },
+  { id: 'cam-13', kind: 'cctv', name: 'Amsterdam Dam Square', location: 'Amsterdam, Netherlands', lat: 52.3728, lon: 4.8933, imgUrl: 'https://www.meteoalarmcam.eu/cam/amsterdam/0/current.jpg', type: 'Traffic' },
+  { id: 'cam-14', kind: 'cctv', name: 'Amsterdam Canal Ring', location: 'Amsterdam, Netherlands', lat: 52.3667, lon: 4.9041, imgUrl: 'https://www.meteoalarmcam.eu/cam/amsterdam/1/current.jpg', type: 'Landmark' },
+  { id: 'cam-15', kind: 'cctv', name: 'Berlin Brandenburg Gate', location: 'Berlin, Germany', lat: 52.5163, lon: 13.3777, imgUrl: 'https://www.meteoalarmcam.eu/cam/berlin/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-16', kind: 'cctv', name: 'Berlin Alexanderplatz', location: 'Berlin, Germany', lat: 52.5219, lon: 13.4132, imgUrl: 'https://www.meteoalarmcam.eu/cam/berlin/1/current.jpg', type: 'Traffic' },
+  { id: 'cam-17', kind: 'cctv', name: 'Rome Colosseum', location: 'Rome, Italy', lat: 41.8902, lon: 12.4922, imgUrl: 'https://www.meteoalarmcam.eu/cam/rome/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-18', kind: 'cctv', name: 'Rome Trevi Fountain', location: 'Rome, Italy', lat: 41.9009, lon: 12.4833, imgUrl: 'https://www.meteoalarmcam.eu/cam/rome/1/current.jpg', type: 'Landmark' },
+  { id: 'cam-19', kind: 'cctv', name: 'Madrid Puerta del Sol', location: 'Madrid, Spain', lat: 40.4168, lon: -3.7038, imgUrl: 'https://www.meteoalarmcam.eu/cam/madrid/0/current.jpg', type: 'Traffic' },
+  { id: 'cam-20', kind: 'cctv', name: 'Barcelona Sagrada Familia', location: 'Barcelona, Spain', lat: 41.4036, lon: 2.1744, imgUrl: 'https://www.meteoalarmcam.eu/cam/barcelona/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-21', kind: 'cctv', name: 'Vienna St Stephens Cathedral', location: 'Vienna, Austria', lat: 48.2086, lon: 16.3725, imgUrl: 'https://www.meteoalarmcam.eu/cam/vienna/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-22', kind: 'cctv', name: 'Prague Old Town Square', location: 'Prague, Czechia', lat: 50.0875, lon: 14.4213, imgUrl: 'https://www.meteoalarmcam.eu/cam/prague/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-23', kind: 'cctv', name: 'Lisbon Praca do Comercio', location: 'Lisbon, Portugal', lat: 38.7075, lon: -9.1364, imgUrl: 'https://www.meteoalarmcam.eu/cam/lisbon/0/current.jpg', type: 'Traffic' },
+  { id: 'cam-24', kind: 'cctv', name: 'Athens Acropolis', location: 'Athens, Greece', lat: 37.9715, lon: 23.7257, imgUrl: 'https://www.meteoalarmcam.eu/cam/athens/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-25', kind: 'cctv', name: 'Istanbul Hagia Sophia', location: 'Istanbul, Turkey', lat: 41.0086, lon: 28.9802, imgUrl: 'https://www.meteoalarmcam.eu/cam/istanbul/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-26', kind: 'cctv', name: 'Moscow Red Square', location: 'Moscow, Russia', lat: 55.7539, lon: 37.6208, imgUrl: 'https://www.meteoalarmcam.eu/cam/moscow/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-27', kind: 'cctv', name: 'Stockholm Gamla Stan', location: 'Stockholm, Sweden', lat: 59.3251, lon: 18.0711, imgUrl: 'https://www.meteoalarmcam.eu/cam/stockholm/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-28', kind: 'cctv', name: 'Oslo Opera House', location: 'Oslo, Norway', lat: 59.9139, lon: 10.7522, imgUrl: 'https://www.meteoalarmcam.eu/cam/oslo/0/current.jpg', type: 'Landmark' },
+  { id: 'cam-29', kind: 'cctv', name: 'Edinburgh Royal Mile', location: 'Edinburgh, UK', lat: 55.9533, lon: -3.1883, imgUrl: 'https://www.meteoalarmcam.eu/cam/edinburgh/0/current.jpg', type: 'Traffic' },
+  { id: 'cam-30', kind: 'cctv', name: 'Dublin OConnell Street', location: 'Dublin, Ireland', lat: 53.3498, lon: -6.2603, imgUrl: 'https://www.meteoalarmcam.eu/cam/dublin/0/current.jpg', type: 'Traffic' },
+  // --- Asia & Pacific ---
+  { id: 'cam-31', kind: 'cctv', name: 'Tokyo Shibuya Scramble', location: 'Tokyo, Japan', lat: 35.6595, lon: 139.7005, imgUrl: 'https://image.taxi.keio.co.jp/scramble.jpg', type: 'Traffic' },
+  { id: 'cam-32', kind: 'cctv', name: 'Tokyo Shinjuku', location: 'Tokyo, Japan', lat: 35.6938, lon: 139.7034, imgUrl: 'https://image.taxi.keio.co.jp/shinjuku.jpg', type: 'Traffic' },
+  { id: 'cam-33', kind: 'cctv', name: 'Hong Kong Harbour', location: 'Hong Kong', lat: 22.2783, lon: 114.1747, imgUrl: 'https://webcam.tv/snapshot/hk-harbour.jpg', type: 'Harbor' },
+  { id: 'cam-34', kind: 'cctv', name: 'Singapore Marina Bay', location: 'Singapore', lat: 1.2834, lon: 103.8607, imgUrl: 'https://www.mpa.gov.sg/webcam/marinabay.jpg', type: 'Harbor' },
+  { id: 'cam-35', kind: 'cctv', name: 'Seoul Gangnam', location: 'Seoul, South Korea', lat: 37.4979, lon: 127.0276, imgUrl: 'https://www.meteoalarmcam.eu/cam/seoul/0/current.jpg', type: 'Traffic' },
+  { id: 'cam-36', kind: 'cctv', name: 'Sydney Opera House', location: 'Sydney, Australia', lat: -33.8568, lon: 151.2153, imgUrl: 'https://www.sydneyferries.info/cam/opera-house.jpg', type: 'Landmark' },
+  { id: 'cam-37', kind: 'cctv', name: 'Auckland Harbour Bridge', location: 'Auckland, New Zealand', lat: -36.8485, lon: 174.7633, imgUrl: 'https://www.meteoalarmcam.eu/cam/auckland/0/current.jpg', type: 'Harbor' },
+  // --- Middle East & Africa ---
+  { id: 'cam-38', kind: 'cctv', name: 'Dubai Marina', location: 'Dubai, UAE', lat: 25.0772, lon: 55.1393, imgUrl: 'https://www.dubaicamera.com/cam/dubai-marina/0/current.jpg', type: 'Harbor' },
+  { id: 'cam-39', kind: 'cctv', name: 'Cape Town Table Mountain', location: 'Cape Town, South Africa', lat: -33.9249, lon: 18.4241, imgUrl: 'https://www.meteoalarmcam.eu/cam/capetown/0/current.jpg', type: 'Landmark' },
+  // --- Maritime ---
+  { id: 'cam-40', kind: 'cctv', name: 'Panama Canal Miraflores Locks', location: 'Panama', lat: 9.0809, lon: -79.6804, imgUrl: 'https://pancanal.com/eng/multimedia/cam-miraflores.jpg', type: 'Maritime' },
 ];
 
 // ---------- Satellite orbital elements (TLE-derived, simplified) ----------

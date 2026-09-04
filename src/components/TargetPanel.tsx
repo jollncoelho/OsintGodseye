@@ -291,7 +291,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
     setLastRefresh(Date.now());
   };
 
-  const snapshotUrl = `${data.snapshot}?t=${refreshKey}`;
+  const snapshotUrl = `${data.imgUrl}?t=${refreshKey}`;
 
   return (
     <>
@@ -357,7 +357,6 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
       <div className="border-b border-cyan/10 px-3 py-2.5">
         <div className="text-sm font-bold text-slate-100">{data.name}</div>
         <div className="mt-0.5 text-[9px] text-slate-500">{data.location}</div>
-        <div className="mt-1 text-[8px] font-bold tracking-wider text-green/60">SOURCE: {data.source}</div>
       </div>
 
       {/* Coordinates */}
@@ -365,18 +364,6 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
         <Field icon={<Compass className="h-3 w-3" />} label="LATITUDE" value={data.lat.toFixed(6)} />
         <Field icon={<Compass className="h-3 w-3" />} label="LONGITUDE" value={data.lon.toFixed(6)} />
       </Section>
-
-      {/* Raw feed button */}
-      <div className="p-3">
-        <a
-          href={data.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2 rounded border border-green/40 bg-green/15 px-3 py-2.5 text-[10px] font-bold tracking-wider text-green transition hover:bg-green/25"
-        >
-          <ExternalLink className="h-4 w-4" /> RAW FEED
-        </a>
-      </div>
     </>
   );
 }

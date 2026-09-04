@@ -6,7 +6,6 @@ import TopBar from '@/components/TopBar';
 import LeftSidebar from '@/components/LeftSidebar';
 import TargetPanel from '@/components/TargetPanel';
 import BottomBar from '@/components/BottomBar';
-import CameraControls3D from '@/components/CameraControls3D';
 import ReconToolkit from '@/components/ReconToolkit';
 import LiveFeedsModal from '@/components/LiveFeedsModal';
 import { useAircraft } from '@/hooks/useAircraft';
@@ -507,28 +506,14 @@ export default function App() {
             </div>
           </div>
 
-          {/* 3D Camera Controls */}
-          <CameraControls3D
-            pitch={pitch}
-            setPitch={setPitch}
-            bearing={bearing}
-            setBearing={setBearing}
-            terrainEnabled={terrainEnabled}
-            setTerrainEnabled={setTerrainEnabled}
-            hillshadeEnabled={hillshadeEnabled}
-            setHillshadeEnabled={setHillshadeEnabled}
-            buildings3DEnabled={buildings3DEnabled}
-            setBuildings3DEnabled={setBuildings3DEnabled}
-            onToggle3D={handleToggle3D}
-            is3DActive={is3DActive}
-          />
-
           {/* Recon Toolkit (right edge) */}
           <ReconToolkit
             earthquakes={earthquakes}
             eqLoading={eqLoading}
             eqError={eqError}
             onOpenLiveFeeds={() => setShowLiveFeeds(true)}
+            onToggleCctv={() => toggleLayer('cctv')}
+            cctvActive={layers.cctv}
           />
 
           {/* Cursor coordinate readout */}

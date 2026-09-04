@@ -518,8 +518,6 @@ function SignalIntegrityBars({ kind }: { kind: string }) {
 
 function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number; lon: number; target: NonNullable<SelectedTarget> }) {
   const [mode, setMode] = useState<'thermal' | 'nvg'>('thermal');
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [showFallback, setShowFallback] = useState(false);
 
   const registration = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).registration : null;
   const aircraftModel = kind === 'aircraft' ? (target.data as import('@/types').Aircraft).model : null;
@@ -528,27 +526,6 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
   const satName = kind === 'satellite' ? (target.data as import('@/types').Satellite).name : null;
   const satCategory = kind === 'satellite' ? (target.data as import('@/types').Satellite).category : null;
   const satAltitude = kind === 'satellite' ? (target.data as import('@/types').Satellite).altitude : null;
-
-  useEffect(() => {
-    setPhotoUrl(null);
-    setShowFallback(false);
-    if (kind !== 'aircraft' || !registration) return;
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      setShowFallback(true);
-    }, 1000);
-    fetch(`https://api.planespotters.net/pub/photos/reg/${registration}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (timedOut) return;
-        const p = d?.photos?.[0];
-        if (p?.thumbnail?.src) setPhotoUrl(p.thumbnail.src);
-        else if (p?.link) setPhotoUrl(p.link);
-      })
-      .catch(() => {})
-      .finally(() => clearTimeout(timer));
-  }, [kind, registration]);
 
   const snapUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${lon - 0.008}%2C${lat - 0.005}%2C${lon + 0.008}%2C${lat + 0.005}&size=320%2C180&format=jpg&f=image`;
 
@@ -579,9 +556,7 @@ function ThermalPreview({ kind, lat, lon, target }: { kind: string; lat: number;
         </div>
       </div>
       <div className={`relative h-20 overflow-hidden rounded border border-cyan/15 ${mode === 'thermal' ? 'shader-thermal' : 'shader-nvg'}`}>
-        {kind === 'aircraft' && photoUrl ? (
-          <img src={photoUrl} alt={aircraftModel ?? 'Aircraft'} className="h-full w-full object-cover" onError={() => setPhotoUrl(null)} />
-        ) : kind === 'aircraft' ? (
+        {kind === 'aircraft' ? (
           <FlirCanvas mode={mode} silhouetteType={isHelicopter ? 'helicopter' : isMilitary ? 'fighter' : 'commercial'} label={aircraftModel ?? registration ?? 'AIRCRAFT'} />
         ) : kind === 'satellite' ? (
           <FlirCanvas mode={mode} silhouetteType="satellite" label={satName ?? satCategory ?? 'SATELLITE'} altitude={satAltitude} />

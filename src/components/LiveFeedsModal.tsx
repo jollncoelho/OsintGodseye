@@ -5,26 +5,18 @@ import type { LiveFeed } from '@/types';
 const LIVE_FEEDS: LiveFeed[] = [
   {
     id: 'feed-iss',
-    name: 'ISS Live — Earth from Space',
+    name: 'NASA / ISS Live',
     category: 'space',
     embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=H999s0P1Er0',
+    externalUrl: 'https://www.nasa.gov/live',
     description: 'Live HD camera feed from the International Space Station (NASA)',
-  },
-  {
-    id: 'feed-iss-uhf',
-    name: 'ISS Live — UHF Video',
-    category: 'space',
-    embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=21X5lGlDOfg',
-    description: 'Alternate ISS live stream via YouTube',
   },
   {
     id: 'feed-skynews',
     name: 'Sky News Live',
     category: 'news',
     embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=YoD6T9D2ckU',
+    externalUrl: 'https://news.sky.com/watch-live',
     description: '24/7 UK and world news coverage',
   },
   {
@@ -32,7 +24,7 @@ const LIVE_FEEDS: LiveFeed[] = [
     name: 'France 24 English Live',
     category: 'news',
     embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=L9O3xUc8kXM',
+    externalUrl: 'https://www.france24.com/en/live',
     description: 'French international news, 24/7 English broadcast',
   },
   {
@@ -40,16 +32,8 @@ const LIVE_FEEDS: LiveFeed[] = [
     name: 'Al Jazeera English Live',
     category: 'news',
     embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=gCNeDWCI0bo',
+    externalUrl: 'https://www.aljazeera.com/live',
     description: 'Qatar-based international news network',
-  },
-  {
-    id: 'feed-dw',
-    name: 'DW News Live',
-    category: 'news',
-    embedUrl: null,
-    externalUrl: 'https://www.youtube.com/watch?v=w8q5QLaiWkg',
-    description: 'Deutsche Welle — German international news',
   },
   {
     id: 'feed-bloomberg',

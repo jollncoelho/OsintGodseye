@@ -38,7 +38,7 @@ export default function App() {
     milShips: true,
     satellites: true,
     cables: true,
-    cctv: true,
+    cctv: false,
     radios: false,
     strategic: false,
     earthquakes: false,

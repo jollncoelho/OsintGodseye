@@ -3,7 +3,7 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink, Activity, Signal, AlertTriangle, RefreshCw,
+  Eye, ExternalLink, Activity, Signal, AlertTriangle,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
@@ -30,7 +30,7 @@ export default function TargetPanel({ target, onClose }: Props) {
   if (!target) return null;
 
   return (
-    <div className="slide-up absolute right-3 top-3 z-[800] flex h-[calc(100%-1.5rem)] w-80 flex-col overflow-hidden border border-cyan/40 bg-black/85 backdrop-blur-md no-select">
+    <div className="slide-up absolute right-0 top-16 z-[800] flex h-[calc(100vh-4rem)] w-80 flex-col overflow-y-auto border border-cyan/40 bg-black/90 backdrop-blur-md no-select">
       <div className="bracket tl" />
       <div className="bracket tr" />
       <div className="bracket bl" />
@@ -52,7 +52,7 @@ export default function TargetPanel({ target, onClose }: Props) {
       </div>
 
       {/* Signal integrity bars — vectors only */}
-      {(target.kind === 'aircraft' || target.kind === 'ship' || target.kind === 'satellite' || target.kind === 'radio' || target.kind === 'cctv') && (
+      {(target.kind === 'aircraft' || target.kind === 'ship' || target.kind === 'satellite' || target.kind === 'radio') && (
         <SignalIntegrityBars kind={target.kind} />
       )}
 
@@ -66,7 +66,6 @@ export default function TargetPanel({ target, onClose }: Props) {
         {target.kind === 'ship' && <ShipDetails data={target.data} />}
         {target.kind === 'satellite' && <SatDetails data={target.data} />}
         {target.kind === 'radio' && <RadioDetails data={target.data} />}
-        {target.kind === 'cctv' && <CctvDetails data={target.data} />}
         {target.kind === 'territory' && <TerritoryDetails data={target.data} />}
         {target.kind === 'conflict' && <ConflictDetails data={target.data} />}
       </div>
@@ -275,116 +274,6 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
       </Section>
       <Section title="TAGS">
         <div className="text-[10px] text-slate-400">{data.tags || '—'}</div>
-      </Section>
-    </>
-  );
-}
-
-function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
-  const [imgError, setImgError] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
-
-  useEffect(() => {
-    setImgError(false);
-    setImgLoaded(false);
-    setLastRefresh(Date.now());
-    const timer = setTimeout(() => {
-      setImgError((err) => err || !imgLoaded);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [data]);
-
-  const handleRefresh = () => {
-    setImgError(false);
-    setImgLoaded(false);
-    setLastRefresh(Date.now());
-    const timer = setTimeout(() => {
-      setImgError((err) => err || !imgLoaded);
-    }, 2000);
-    return () => clearTimeout(timer);
-  };
-
-  const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(data.imgUrl)}&default=1`;
-
-  return (
-    <>
-      {/* Header bar */}
-      <div className="border-b border-green/20 bg-green/5 px-3 py-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Camera className="h-3.5 w-3.5 text-green" />
-            <span className="text-[9px] font-bold tracking-[0.15em] text-green">CAM-{data.id.toUpperCase()} // {data.lat.toFixed(3)}, {data.lon.toFixed(3)} // SECURE UPLINK</span>
-          </div>
-          <button
-            onClick={handleRefresh}
-            title="Refresh snapshot"
-            className="flex items-center justify-center rounded border border-green/30 bg-green/10 p-1 text-green transition hover:bg-green/20"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Image container */}
-      <div className="relative h-52 overflow-hidden border-b border-green/10 bg-black">
-        {imgError ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 bg-black">
-            <span className="text-[10px] font-bold tracking-[0.2em] text-cyan">[ FLUX INDISPONIBLE ]</span>
-            <a
-              href={data.imgUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded border border-cyan/30 bg-cyan/5 px-3 py-1.5 text-[9px] font-bold text-cyan transition hover:bg-cyan/15"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> OPEN EXTERNAL FEED
-            </a>
-          </div>
-        ) : (
-          <img
-            src={proxyUrl}
-            alt={data.name}
-            referrerPolicy="no-referrer"
-            loading="lazy"
-            className="h-full w-full object-cover"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-          />
-        )}
-        {!imgLoaded && !imgError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-green/30 border-t-green" />
-          </div>
-        )}
-
-        {/* LIVE SAT-LINK badge */}
-        <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-green">
-          <span className="h-1.5 w-1.5 rounded-full bg-green blink" /> LIVE SAT-LINK
-        </div>
-
-        {/* Camera type badge */}
-        <div className="absolute right-2 top-2 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan/80">
-          {data.type.toUpperCase()}
-        </div>
-
-        {/* Timestamp */}
-        <div className="absolute bottom-2 right-2 rounded bg-black/80 px-2 py-0.5 text-[7px] font-mono text-green/60">
-          {new Date(lastRefresh).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} UTC
-        </div>
-
-        <div className="scan-line" />
-      </div>
-
-      {/* Title section */}
-      <div className="border-b border-cyan/10 px-3 py-2.5">
-        <div className="text-sm font-bold text-slate-100">{data.name}</div>
-        <div className="mt-0.5 text-[9px] text-slate-500">{data.location}</div>
-      </div>
-
-      {/* Coordinates */}
-      <Section title="UPLINK COORDINATES">
-        <Field icon={<Compass className="h-3 w-3" />} label="LATITUDE" value={data.lat.toFixed(6)} />
-        <Field icon={<Compass className="h-3 w-3" />} label="LONGITUDE" value={data.lon.toFixed(6)} />
       </Section>
     </>
   );

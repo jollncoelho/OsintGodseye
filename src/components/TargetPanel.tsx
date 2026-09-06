@@ -66,6 +66,7 @@ export default function TargetPanel({ target, onClose }: Props) {
         {target.kind === 'ship' && <ShipDetails data={target.data} />}
         {target.kind === 'satellite' && <SatDetails data={target.data} />}
         {target.kind === 'radio' && <RadioDetails data={target.data} />}
+        {target.kind === 'cctv' && <CctvDetails data={target.data} />}
         {target.kind === 'territory' && <TerritoryDetails data={target.data} />}
         {target.kind === 'conflict' && <ConflictDetails data={target.data} />}
       </div>
@@ -275,6 +276,62 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
       <Section title="TAGS">
         <div className="text-[10px] text-slate-400">{data.tags || '—'}</div>
       </Section>
+    </>
+  );
+}
+
+function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [data]);
+
+  return (
+    <>
+      <div className="relative h-52 overflow-hidden border-b border-cyan/10 bg-black">
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center bg-black" />
+        ) : (
+          <img
+            src={data.imgUrl}
+            crossOrigin="anonymous"
+            alt={data.name}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
+        <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan blink" /> LIVE CAM
+        </div>
+        <div className="absolute right-2 top-2 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan/80">
+          {data.type.toUpperCase()}
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <div className="border-b border-cyan/10 px-3 py-2.5">
+        <div className="text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="mt-0.5 text-[9px] text-slate-500">{data.location}</div>
+      </div>
+
+      <Section title="CAMERA COORDINATES">
+        <Field icon={<Compass className="h-3 w-3" />} label="LATITUDE" value={data.lat.toFixed(6)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LONGITUDE" value={data.lon.toFixed(6)} />
+      </Section>
+
+      <div className="p-3">
+        <a
+          href={data.imgUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded border border-cyan/30 bg-cyan/10 px-3 py-2.5 text-[10px] font-bold text-cyan transition hover:bg-cyan/20"
+        >
+          <ExternalLink className="h-4 w-4" /> OPEN EXTERNAL FEED
+        </a>
+      </div>
     </>
   );
 }

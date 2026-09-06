@@ -57,14 +57,11 @@ export const MOCK_SHIPS: Ship[] = [
 
 // ---------- CCTV cameras (public Roundshot JPEG feeds) ----------
 export const MOCK_CCTV: CctvCamera[] = [
-  { id: 'cam-1', kind: 'cctv', name: 'Bruxelles - Atomium / Ville', location: 'Brussels, Belgium', lat: 50.8467, lon: 4.3525, imgUrl: 'https://backend.roundshot.com/cams/241/thumbnail', type: 'City' },
-  { id: 'cam-2', kind: 'cctv', name: 'Paris - Panorama Tour Eiffel', location: 'Paris, France', lat: 48.8584, lon: 2.2945, imgUrl: 'https://backend.roundshot.com/cams/460/thumbnail', type: 'Landmark' },
-  { id: 'cam-3', kind: 'cctv', name: 'Nice - Promenade des Anglais', location: 'Nice, France', lat: 43.6957, lon: 7.2656, imgUrl: 'https://backend.roundshot.com/cams/154/thumbnail', type: 'Coastal' },
-  { id: 'cam-4', kind: 'cctv', name: 'Chamonix - Mont-Blanc', location: 'Chamonix, France', lat: 45.9237, lon: 6.8694, imgUrl: 'https://backend.roundshot.com/cams/271/thumbnail', type: 'Mountain' },
-  { id: 'cam-5', kind: 'cctv', name: 'Geneve - Rade & Jet d Eau', location: 'Geneva, Switzerland', lat: 46.2074, lon: 6.1559, imgUrl: 'https://backend.roundshot.com/cams/444/thumbnail', type: 'City' },
-  { id: 'cam-6', kind: 'cctv', name: 'Zurich - Lac & Centre', location: 'Zurich, Switzerland', lat: 47.3686, lon: 8.5417, imgUrl: 'https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
-  { id: 'cam-7', kind: 'cctv', name: 'Zermatt - Matterhorn', location: 'Zermatt, Switzerland', lat: 46.0207, lon: 7.7491, imgUrl: 'https://backend.roundshot.com/cams/5/thumbnail', type: 'Mountain' },
-  { id: 'cam-8', kind: 'cctv', name: 'Jungfraujoch - Top of Europe', location: 'Jungfraujoch, Switzerland', lat: 46.5475, lon: 7.9822, imgUrl: 'https://backend.roundshot.com/cams/210/thumbnail', type: 'Mountain' },
+  { id: 'cam-uk-1', kind: 'cctv', name: 'Londres - Westminster Bridge', location: 'London, UK', lat: 51.5007, lon: -0.1246, imgUrl: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03603.jpg', type: 'City' },
+  { id: 'cam-uk-2', kind: 'cctv', name: 'Londres - Piccadilly Circus', location: 'London, UK', lat: 51.5100, lon: -0.1340, imgUrl: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.07355.jpg', type: 'City' },
+  { id: 'cam-us-1', kind: 'cctv', name: 'Californie - San Francisco Bay', location: 'San Francisco, USA', lat: 37.7980, lon: -122.3780, imgUrl: 'https://cwwp2.dot.ca.gov/data/d4/cctv/image/sfbaBayBridgeTollPlaza/sfbaBayBridgeTollPlaza.jpg', type: 'Highway' },
+  { id: 'cam-us-2', kind: 'cctv', name: 'Californie - Los Angeles I-5', location: 'Los Angeles, USA', lat: 34.0522, lon: -118.2437, imgUrl: 'https://cwwp2.dot.ca.gov/data/d7/cctv/image/d7_i5_at_olympic/d7_i5_at_olympic.jpg', type: 'Highway' },
+  { id: 'cam-jp-1', kind: 'cctv', name: 'Tokyo - Port Area', location: 'Tokyo, Japan', lat: 35.6200, lon: 139.7700, imgUrl: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
 ];
 
 // ---------- Satellite orbital elements (TLE-derived, simplified) ----------

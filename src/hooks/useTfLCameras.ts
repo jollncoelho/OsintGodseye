@@ -12,7 +12,7 @@ type TfLPlace = {
 export async function fetchTfLCameras(): Promise<CctvCamera[]> {
   try {
     const targetUrl = encodeURIComponent('https://api.tfl.gov.uk/Place/Type/JamCam');
-    const proxyUrl = `https://corsproxy.io/?${targetUrl}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${targetUrl}`;
 
     const res = await fetch(proxyUrl, {
       signal: AbortSignal.timeout(10000),

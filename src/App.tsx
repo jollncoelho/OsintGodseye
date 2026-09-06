@@ -12,6 +12,7 @@ import { useAircraft } from '@/hooks/useAircraft';
 import { useRadios } from '@/hooks/useRadios';
 import { useTerritoryIntel } from '@/hooks/useTerritoryIntel';
 import { useEarthquakes } from '@/hooks/useEarthquakes';
+import { useTfLCameras } from '@/hooks/useTfLCameras';
 import { MOCK_SHIPS, MOCK_CCTV, MOCK_HELICOPTERS, buildSatellitesWithTrails } from '@/lib/mockData';
 import { STRATEGIC_POINTS } from '@/lib/strategicPoints';
 import type {
@@ -82,6 +83,9 @@ export default function App() {
 
   const { radios, loading: radioLoading, error: radioError } = useRadios(layers.radios);
   const { earthquakes, loading: eqLoading, error: eqError } = useEarthquakes(layers.earthquakes);
+  const { cameras: tflCameras, loading: tflLoading, error: tflError } = useTfLCameras(layers.cctv);
+
+  const allCctv = useMemo(() => [...MOCK_CCTV, ...tflCameras], [tflCameras]);
 
   // Ships (mock, with slow drift)
   const [ships, setShips] = useState<Ship[]>(MOCK_SHIPS);
@@ -126,6 +130,11 @@ export default function App() {
     if (eqError) addLog('warn', `USGS seismic feed error: ${eqError}`);
     else if (!eqLoading && earthquakes.length > 0) addLog('info', `Seismic monitor: ${earthquakes.length} events (M2.5+) in last 24h`);
   }, [earthquakes, eqLoading, eqError, addLog]);
+
+  useEffect(() => {
+    if (tflError) addLog('warn', `TfL JamCam feed error: ${tflError}`);
+    else if (!tflLoading && tflCameras.length > 0) addLog('info', `TfL JamCam: ${tflCameras.length} live cameras loaded`);
+  }, [tflCameras, tflLoading, tflError, addLog]);
 
   // Ship drift simulation
   useEffect(() => {
@@ -416,11 +425,11 @@ export default function App() {
     milShips: layers.milShips ? ships.filter((s) => s.naval).length : 0,
     satellites: layers.satellites ? satellites.length : 0,
     cables: layers.cables ? 15 : 0,
-    cctv: layers.cctv ? MOCK_CCTV.length : 0,
+    cctv: layers.cctv ? allCctv.length : 0,
     radios: layers.radios ? radios.length : 0,
     strategic: layers.strategic ? STRATEGIC_POINTS.length : 0,
     earthquakes: layers.earthquakes ? earthquakes.length : 0,
-  }), [layers, allAircraft, ships, satellites, radios, earthquakes]);
+  }), [layers, allAircraft, ships, satellites, radios, earthquakes, allCctv]);
 
   return (
     <div className="hud-frame relative flex h-screen w-screen flex-col overflow-hidden bg-hud-bg">
@@ -464,7 +473,7 @@ export default function App() {
               ships={ships}
               satellites={satellites}
               radios={radios}
-              cctv={MOCK_CCTV}
+              cctv={allCctv}
               selected={selected}
               onSelect={handleSelect}
               onMapClick={handleMapClick}
@@ -486,7 +495,7 @@ export default function App() {
               ships={ships}
               satellites={satellites}
               radios={radios}
-              cctv={MOCK_CCTV}
+              cctv={allCctv}
               earthquakes={earthquakes}
               selected={selected}
               onSelect={handleSelect}

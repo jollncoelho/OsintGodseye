@@ -295,7 +295,6 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
         ) : (
           <img
             src={data.imgUrl}
-            crossOrigin="anonymous"
             alt={data.name}
             referrerPolicy="no-referrer"
             loading="lazy"

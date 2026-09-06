@@ -63,7 +63,7 @@ export type CctvCamera = BaseEntity & {
   kind: 'cctv';
   name: string;
   location: string;
-  imgUrl: string;
+  url: string;
   type: string;
 };
 

@@ -294,7 +294,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
           <div className="flex h-full w-full items-center justify-center bg-black" />
         ) : (
           <img
-            src={data.imgUrl}
+            src={data.url}
             alt={data.name}
             referrerPolicy="no-referrer"
             loading="lazy"
@@ -323,7 +323,7 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
 
       <div className="p-3">
         <a
-          href={data.imgUrl}
+          href={data.url}
           target="_blank"
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded border border-cyan/30 bg-cyan/10 px-3 py-2.5 text-[10px] font-bold text-cyan transition hover:bg-cyan/20"

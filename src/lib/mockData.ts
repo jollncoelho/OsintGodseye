@@ -55,28 +55,14 @@ export const MOCK_SHIPS: Ship[] = [
   { id: 'ship-18', kind: 'ship', mmsi: '636000018', name: 'JS Izumo (DDH-183)', type: 'Helicopter Destroyer', naval: true, lat: 35.3, lon: 139.7, heading: 135, speed: 22, destination: 'Yokosuka', flag: 'JP', trail: [] },
 ];
 
-// ---------- CCTV cameras (public Roundshot JPEG feeds) ----------
+// ---------- CCTV cameras (static, CORS-safe image proxies) ----------
 export const MOCK_CCTV: CctvCamera[] = [
-  // UK
-  { id: 'cam-uk-1', kind: 'cctv', name: 'Londres - Westminster', location: 'London, UK', lat: 51.5007, lon: -0.1246, imgUrl: 'https://wsrv.nl/?url=https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03603.jpg', type: 'City' },
-  { id: 'cam-uk-2', kind: 'cctv', name: 'Londres - Piccadilly', location: 'London, UK', lat: 51.5100, lon: -0.1340, imgUrl: 'https://wsrv.nl/?url=https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.07355.jpg', type: 'City' },
-  { id: 'cam-uk-3', kind: 'cctv', name: 'Londres - Tower Bridge', location: 'London, UK', lat: 51.5055, lon: -0.0754, imgUrl: 'https://wsrv.nl/?url=https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.02051.jpg', type: 'Landmark' },
-  // FRANCE & BELGIQUE
-  { id: 'cam-fr-1', kind: 'cctv', name: 'Paris - Tour Eiffel Pan', location: 'Paris, France', lat: 48.8584, lon: 2.2945, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/460/thumbnail', type: 'Landmark' },
-  { id: 'cam-fr-2', kind: 'cctv', name: 'Nice - Promenade', location: 'Nice, France', lat: 43.6957, lon: 7.2656, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/154/thumbnail', type: 'Coastal' },
-  { id: 'cam-fr-3', kind: 'cctv', name: 'Chamonix - Mont-Blanc', location: 'Chamonix, France', lat: 45.9237, lon: 6.8694, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/271/thumbnail', type: 'Mountain' },
-  { id: 'cam-be-1', kind: 'cctv', name: 'Bruxelles - Centre', location: 'Brussels, Belgium', lat: 50.8467, lon: 4.3525, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/241/thumbnail', type: 'City' },
-  // SUISSE & ALPES
-  { id: 'cam-ch-1', kind: 'cctv', name: 'Genève - Lac', location: 'Geneva, Switzerland', lat: 46.2074, lon: 6.1559, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/444/thumbnail', type: 'City' },
-  { id: 'cam-ch-2', kind: 'cctv', name: 'Zürich - City', location: 'Zurich, Switzerland', lat: 47.3686, lon: 8.5417, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
-  { id: 'cam-ch-3', kind: 'cctv', name: 'Zermatt - Cervin', location: 'Zermatt, Switzerland', lat: 45.9765, lon: 7.7491, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/5/thumbnail', type: 'Mountain' },
-  // USA (Caltrans)
-  { id: 'cam-us-1', kind: 'cctv', name: 'SF - Bay Bridge', location: 'San Francisco, USA', lat: 37.7980, lon: -122.3780, imgUrl: 'https://wsrv.nl/?url=https://cwwp2.dot.ca.gov/data/d4/cctv/image/sfbaBayBridgeTollPlaza/sfbaBayBridgeTollPlaza.jpg', type: 'Highway' },
-  { id: 'cam-us-2', kind: 'cctv', name: 'LA - Downtown I-5', location: 'Los Angeles, USA', lat: 34.0522, lon: -118.2437, imgUrl: 'https://wsrv.nl/?url=https://cwwp2.dot.ca.gov/data/d7/cctv/image/d7_i5_at_olympic/d7_i5_at_olympic.jpg', type: 'Highway' },
-  { id: 'cam-us-3', kind: 'cctv', name: 'San Diego - I-8', location: 'San Diego, USA', lat: 32.7157, lon: -117.1611, imgUrl: 'https://wsrv.nl/?url=https://cwwp2.dot.ca.gov/data/d11/cctv/image/d11_i8_at_fairmount/d11_i8_at_fairmount.jpg', type: 'Highway' },
-  // NORDICS & ASIA
-  { id: 'cam-no-1', kind: 'cctv', name: 'Oslo - Port', location: 'Oslo, Norway', lat: 59.9139, lon: 10.7522, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/210/thumbnail', type: 'City' },
-  { id: 'cam-jp-1', kind: 'cctv', name: 'Tokyo - Port Area', location: 'Tokyo, Japan', lat: 35.6762, lon: 139.6503, imgUrl: 'https://wsrv.nl/?url=https://backend.roundshot.com/cams/120/thumbnail', type: 'City' },
+  { id: 'cam-1', kind: 'cctv', name: 'Paris - Tour Eiffel', location: 'Paris, France', lat: 48.8584, lon: 2.2945, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/460/thumbnail', type: 'Landmark' },
+  { id: 'cam-2', kind: 'cctv', name: 'Londres - Westminster', location: 'London, UK', lat: 51.5007, lon: -0.1246, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/241/thumbnail', type: 'City' },
+  { id: 'cam-3', kind: 'cctv', name: 'Genève - Lac & Jet d Eau', location: 'Geneva, Switzerland', lat: 46.2074, lon: 6.1559, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/444/thumbnail', type: 'City' },
+  { id: 'cam-4', kind: 'cctv', name: 'Chamonix - Mont-Blanc', location: 'Chamonix, France', lat: 45.9237, lon: 6.8694, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/271/thumbnail', type: 'Mountain' },
+  { id: 'cam-5', kind: 'cctv', name: 'Nice - Promenade des Anglais', location: 'Nice, France', lat: 43.6957, lon: 7.2656, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/154/thumbnail', type: 'Coastal' },
+  { id: 'cam-6', kind: 'cctv', name: 'Zürich - City Center', location: 'Zurich, Switzerland', lat: 47.3686, lon: 8.5417, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
 ];
 
 // ---------- Satellite orbital elements (TLE-derived, simplified) ----------

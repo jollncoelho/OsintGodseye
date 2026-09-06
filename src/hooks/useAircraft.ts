@@ -265,10 +265,7 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
     let cancelled = false;
 
     const scheduleNext = () => {
-      const fails = failCountRef.current;
-      // Exponential backoff: 20s → 40s → 80s → 160s → 240s (cap)
-      const delay = Math.min(20000 * Math.pow(2, fails), 240000);
-      intervalRef.current = setTimeout(runFetch, delay);
+      intervalRef.current = setTimeout(runFetch, 30000);
     };
 
     const runFetch = async () => {

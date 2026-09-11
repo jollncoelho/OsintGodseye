@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CctvCamera } from '@/types';
 
+interface ProxyCamera {
+  id: string;
+  lat: number;
+  lon: number;
+  name: string;
+  url: string;
+  source: string;
+  country: string;
+}
+
 interface CctvProxyResponse {
   total: number;
-  cameras: Array<{ id: string; lat: number; lon: number; name: string; url: string }>;
+  cameras: ProxyCamera[];
+  errors?: string[];
 }
 
 export function useCctvCameras(enabled: boolean) {
@@ -22,11 +33,11 @@ export function useCctvCameras(enabled: boolean) {
         id: c.id,
         kind: 'cctv' as const,
         name: c.name,
-        location: 'London, UK',
+        location: c.country,
         lat: c.lat,
         lon: c.lon,
         url: `https://images.weserv.nl/?url=${encodeURIComponent(c.url)}`,
-        type: 'City',
+        type: c.source,
       }));
       setCameras(parsed);
     } catch (e) {

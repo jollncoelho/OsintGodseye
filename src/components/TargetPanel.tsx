@@ -282,28 +282,45 @@ function RadioDetails({ data }: { data: import('@/types').RadioStation }) {
 
 function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     setImgError(false);
+    setImgLoaded(false);
   }, [data]);
 
   return (
     <>
       <div className="relative h-52 overflow-hidden border-b border-cyan/10 bg-black">
         {imgError ? (
-          <div className="flex h-full w-full items-center justify-center bg-black" />
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-hud-bg">
+            <Camera className="h-8 w-8 text-slate-600" />
+            <div className="text-[9px] font-bold tracking-[0.2em] text-slate-500">FEED OFFLINE</div>
+            <div className="text-[8px] text-slate-700">No image available</div>
+          </div>
         ) : (
-          <img
-            src={data.url}
-            alt={data.name}
-            referrerPolicy="no-referrer"
-            loading="lazy"
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
-          />
+          <>
+            {!imgLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-hud-bg">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
+                  <div className="text-[8px] font-bold tracking-wider text-cyan/60">LOADING FEED...</div>
+                </div>
+              </div>
+            )}
+            <img
+              src={data.url}
+              alt={data.name}
+              referrerPolicy="no-referrer"
+              loading="lazy"
+              className="h-full w-full object-cover"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => { setImgError(true); setImgLoaded(false); }}
+            />
+          </>
         )}
         <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan">
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan blink" /> LIVE CAM
+          <span className={`h-1.5 w-1.5 rounded-full ${imgError ? 'bg-danger' : 'bg-cyan blink'}`} /> {imgError ? 'OFFLINE' : 'LIVE CAM'}
         </div>
         <div className="absolute right-2 top-2 rounded bg-black/80 px-2 py-0.5 text-[8px] font-bold tracking-wider text-cyan/80">
           {data.type.toUpperCase()}

@@ -167,92 +167,72 @@ function parseAdsbAircraft(ac: AdsbAircraft, militaryOnly: boolean, trailsRef: R
   };
 }
 
+const BASE_INTERVAL = 45000;
+const MAX_BACKOFF = 300000;
+
 export function useAircraft(enabled: boolean, militaryOnly: boolean) {
   const [aircraft, setAircraft] = useState<Aircraft[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trailsRef = useRef<Map<string, [number, number][]>>(new Map());
   const failCountRef = useRef(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inFlightRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchAircraft = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
-    setError(null);
     try {
       const out: Aircraft[] = [];
       const seenHex = new Set<string>();
+      let got429 = false;
 
-      // 1. Fetch military flights via serverless proxy (avoids CORS)
-      try {
-        const milRes = await fetch('/api/adsb?endpoint=mil', { headers: { Accept: 'application/json' } });
-        if (milRes.ok) {
-          const milData: AdsbResponse = await milRes.json();
-          const milList = milData.ac || [];
-          for (const ac of milList) {
+      const endpoints = [
+        '/api/adsb?endpoint=mil',
+        '/api/adsb?lat=50&lon=10&dist=250',
+        '/api/adsb?lat=40&lon=-90&dist=250',
+      ];
+
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, { headers: { Accept: 'application/json' } });
+          if (res.status === 429) {
+            got429 = true;
+            continue;
+          }
+          if (!res.ok) continue;
+          const data: AdsbResponse = await res.json();
+          const list = data.ac || [];
+          for (const ac of list) {
             const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
             if (parsed && !seenHex.has(parsed.icao24)) {
               seenHex.add(parsed.icao24);
               out.push(parsed);
             }
           }
+        } catch {
+          // skip this endpoint, try the next
         }
-      } catch (err) {
-        console.warn('ADS-B proxy /mil fetch failed:', err);
       }
 
-      // 2. Fetch all flights in a radius around central Europe via proxy
-      try {
-        const allRes = await fetch('/api/adsb?lat=50&lon=10&dist=250', {
-          headers: { Accept: 'application/json' },
-        });
-        if (allRes.ok) {
-          const allData: AdsbResponse = await allRes.json();
-          const allList = allData.ac || [];
-          for (const ac of allList) {
-            const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
-            if (parsed && !seenHex.has(parsed.icao24)) {
-              seenHex.add(parsed.icao24);
-              out.push(parsed);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('ADS-B proxy EU radius fetch failed:', err);
+      if (out.length > 0) {
+        setAircraft(out.slice(0, 600));
+        failCountRef.current = 0;
+        setError(null);
+      } else if (got429) {
+        failCountRef.current += 1;
+        setError('Rate-limited by ADS-B feed — showing cached data');
+      } else {
+        failCountRef.current += 1;
+        setError('ADSB.lol returned no aircraft — feed may be temporarily unavailable');
       }
-
-      // 3. Fetch US-area flights for broader coverage via proxy
-      try {
-        const usRes = await fetch('/api/adsb?lat=40&lon=-90&dist=250', {
-          headers: { Accept: 'application/json' },
-        });
-        if (usRes.ok) {
-          const usData: AdsbResponse = await usRes.json();
-          const usList = usData.ac || [];
-          for (const ac of usList) {
-            const parsed = parseAdsbAircraft(ac, militaryOnly, trailsRef);
-            if (parsed && !seenHex.has(parsed.icao24)) {
-              seenHex.add(parsed.icao24);
-              out.push(parsed);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('ADS-B proxy US radius fetch failed:', err);
-      }
-
-      if (out.length === 0) {
-        throw new Error('ADSB.lol returned no aircraft — feed may be temporarily unavailable');
-      }
-
-      const capped = out.slice(0, 600);
-      setAircraft(capped);
-      failCountRef.current = 0;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'fetch failed';
-      setError(msg);
       failCountRef.current += 1;
+      setError(e instanceof Error ? e.message : 'fetch failed');
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   }, [militaryOnly]);
 
@@ -265,7 +245,8 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
     let cancelled = false;
 
     const scheduleNext = () => {
-      intervalRef.current = setTimeout(runFetch, 30000);
+      const backoff = Math.min(BASE_INTERVAL * Math.pow(2, failCountRef.current), MAX_BACKOFF);
+      timerRef.current = setTimeout(runFetch, backoff);
     };
 
     const runFetch = async () => {
@@ -279,7 +260,7 @@ export function useAircraft(enabled: boolean, militaryOnly: boolean) {
 
     return () => {
       cancelled = true;
-      if (intervalRef.current) clearTimeout(intervalRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [enabled, fetchAircraft]);
 

@@ -1,10 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Polygon, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import type { Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget, StrategicPoint, Earthquake } from '@/types';
-import { planeIcon, jetIcon, heliIcon, shipIcon, warshipIcon, satIcon, radioIcon, cctvIcon, selectedPulse, targetReticleIcon, nuclearIcon, baseIcon, conflictIcon, earthquakeIcon } from '@/lib/icons';
+import type {
+  Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget,
+  Earthquake, CyberThreat, GlobalIncident, InfrastructureSite,
+} from '@/types';
+import {
+  planeIcon, jetIcon, heliIcon, shipIcon, warshipIcon, satIcon, radioIcon, cctvIcon,
+  selectedPulse, targetReticleIcon, nuclearIcon, baseIcon, conflictIcon, earthquakeIcon,
+  cyberIcon, incidentIcon, infraIcon,
+} from '@/lib/icons';
 import { UNDERSEA_CABLES } from '@/lib/cables';
 import { STRATEGIC_POINTS } from '@/lib/strategicPoints';
+import { nightPolygon, subSolarPoint } from '@/lib/terminator';
+import { CYBER_SEVERITY_COLOR } from '@/lib/cyber';
+import { INCIDENT_CATEGORY_COLOR } from '@/lib/incidents';
+import { INFRA_CATEGORY_COLOR } from '@/lib/infrastructure';
+import { SAT_GROUP_COLOR } from '@/lib/satelliteColors';
 
 type Props = {
   baseLayer: BaseLayerKey;
@@ -15,6 +27,9 @@ type Props = {
   radios: RadioStation[];
   cctv: CctvCamera[];
   earthquakes: Earthquake[];
+  cyber: CyberThreat[];
+  incidents: GlobalIncident[];
+  infrastructure: InfrastructureSite[];
   selected: SelectedTarget;
   onSelect: (t: SelectedTarget) => void;
   onMapClick: (lat: number, lon: number, zoom: number) => void;
@@ -110,8 +125,37 @@ function MapEventHandler({
   return null;
 }
 
+/** Day/night terminator — recomputed on a 60 s cadence. */
+function TerminatorLayer() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const ring = useMemo(() => nightPolygon(now), [now]);
+  const sun = useMemo(() => subSolarPoint(now), [now]);
+
+  return (
+    <>
+      <Polygon
+        positions={ring}
+        interactive={false}
+        pathOptions={{ color: '#0b1220', weight: 0.5, opacity: 0.35, fillColor: '#02060f', fillOpacity: 0.42 }}
+      />
+      <CircleMarker
+        center={[sun.lat, sun.lon]}
+        radius={7}
+        interactive={false}
+        pathOptions={{ color: '#fbbf24', weight: 1.5, fillColor: '#fbbf24', fillOpacity: 0.85 }}
+      />
+    </>
+  );
+}
+
 export default function MapView({
-  baseLayer, layers, aircraft, ships, satellites, radios, cctv, earthquakes, selected, onSelect, onMapClick, onMapContextMenu, reticle, flyTo, onFlyToDone, onCursorMove,
+  baseLayer, layers, aircraft, ships, satellites, radios, cctv, earthquakes, cyber, incidents, infrastructure,
+  selected, onSelect, onMapClick, onMapContextMenu, reticle, flyTo, onFlyToDone, onCursorMove,
 }: Props) {
   const tile = TILE_LAYERS[baseLayer];
   const selectedId = selected ? (selected.data as { id: string }).id : null;
@@ -137,7 +181,19 @@ export default function MapView({
     [ships, layers.milShips],
   );
 
+  const satComms = useMemo(() => (layers.satComms ? satellites.filter((s) => s.group === 'comms') : []), [satellites, layers.satComms]);
+  const satMil = useMemo(() => (layers.satMilitary ? satellites.filter((s) => s.group === 'military') : []), [satellites, layers.satMilitary]);
+  const satNav = useMemo(() => (layers.satNav ? satellites.filter((s) => s.group === 'navigation') : []), [satellites, layers.satNav]);
+  const satObs = useMemo(() => (layers.satEarthObs ? satellites.filter((s) => s.group === 'earthobs') : []), [satellites, layers.satEarthObs]);
+
   const reticleIcon = useMemo(() => targetReticleIcon(), []);
+
+  const satLayers: { key: LayerKey; list: Satellite[] }[] = [
+    { key: 'satComms', list: satComms },
+    { key: 'satMilitary', list: satMil },
+    { key: 'satNav', list: satNav },
+    { key: 'satEarthObs', list: satObs },
+  ];
 
   return (
     <MapContainer
@@ -158,10 +214,11 @@ export default function MapView({
       <FlyController flyTo={flyTo} onFlyToDone={onFlyToDone} />
       <MapEventHandler onMapClick={onMapClick} onMapContextMenu={onMapContextMenu} onCursorMove={onCursorMove} />
 
+      {/* Day / night terminator */}
+      {layers.terminator && <TerminatorLayer />}
+
       {/* Target reticle for clicked location */}
-      {reticle && (
-        <Marker position={reticle} icon={reticleIcon} interactive={false} />
-      )}
+      {reticle && <Marker position={reticle} icon={reticleIcon} interactive={false} />}
 
       {/* Undersea cables */}
       {layers.cables &&
@@ -169,12 +226,7 @@ export default function MapView({
           <Polyline
             key={`cable-${i}`}
             positions={cable.path}
-            pathOptions={{
-              color: '#fbbf24',
-              weight: 1.5,
-              opacity: 0.55,
-              dashArray: '6 4',
-            }}
+            pathOptions={{ color: '#fbbf24', weight: 1.5, opacity: 0.55, dashArray: '6 4' }}
             eventHandlers={{
               mouseover: (e) => {
                 const layer = e.target as L.Polyline;
@@ -208,18 +260,46 @@ export default function MapView({
                 if (pt.category === 'conflict_zone') {
                   onSelect({ kind: 'conflict', data: pt });
                 } else {
-                  onSelect({ kind: 'territory', data: {
-                    id: pt.id,
+                  onSelect({
                     kind: 'territory',
-                    lat: pt.lat,
-                    lon: pt.lon,
-                    displayName: pt.name,
-                    country: pt.status,
-                    countryCode: '??',
-                  } });
+                    data: { id: pt.id, kind: 'territory', lat: pt.lat, lon: pt.lon, displayName: pt.name, country: pt.status, countryCode: '??' },
+                  });
                 }
               },
             }}
+          />
+        ))}
+
+      {/* Infrastructure */}
+      {layers.infrastructure &&
+        infrastructure.map((site) => (
+          <Marker
+            key={site.id}
+            position={[site.lat, site.lon]}
+            icon={selectedId === site.id ? selectedPulse(INFRA_CATEGORY_COLOR[site.category]) : infraIcon(INFRA_CATEGORY_COLOR[site.category])}
+            eventHandlers={{ click: () => onSelect({ kind: 'infrastructure', data: site }) }}
+          />
+        ))}
+
+      {/* Cyber threats */}
+      {layers.cyber &&
+        cyber.map((t) => (
+          <Marker
+            key={t.id}
+            position={[t.lat, t.lon]}
+            icon={selectedId === t.id ? selectedPulse(CYBER_SEVERITY_COLOR[t.severity]) : cyberIcon(CYBER_SEVERITY_COLOR[t.severity])}
+            eventHandlers={{ click: () => onSelect({ kind: 'cyber', data: t }) }}
+          />
+        ))}
+
+      {/* Global incidents */}
+      {layers.incidents &&
+        incidents.map((inc) => (
+          <Marker
+            key={inc.id}
+            position={[inc.lat, inc.lon]}
+            icon={selectedId === inc.id ? selectedPulse(INCIDENT_CATEGORY_COLOR[inc.category]) : incidentIcon(INCIDENT_CATEGORY_COLOR[inc.category])}
+            eventHandlers={{ click: () => onSelect({ kind: 'incident', data: inc }) }}
           />
         ))}
 
@@ -231,28 +311,21 @@ export default function MapView({
             position={[eq.lat, eq.lon]}
             icon={earthquakeIcon(eq.magnitude)}
             eventHandlers={{
-              click: () => {
-                onSelect({ kind: 'territory', data: {
-                  id: eq.id,
+              click: () =>
+                onSelect({
                   kind: 'territory',
-                  lat: eq.lat,
-                  lon: eq.lon,
-                  displayName: `M${eq.magnitude.toFixed(1)} Earthquake`,
-                  country: eq.place,
-                  countryCode: '??',
-                } });
-              },
+                  data: { id: eq.id, kind: 'territory', lat: eq.lat, lon: eq.lon, displayName: `M${eq.magnitude.toFixed(1)} Earthquake`, country: eq.place, countryCode: '??' },
+                }),
             }}
           />
         ))}
 
-      {/* Civil aircraft trails */}
+      {/* Civil aircraft */}
       {civAircraft.map((ac) =>
         ac.trail.length > 1 ? (
           <Polyline key={`trail-${ac.id}`} positions={ac.trail} pathOptions={{ color: '#22d3ee', weight: 1, opacity: 0.35 }} />
         ) : null,
       )}
-      {/* Civil aircraft markers */}
       {civAircraft.map((ac) => (
         <Marker
           key={ac.id}
@@ -262,13 +335,12 @@ export default function MapView({
         />
       ))}
 
-      {/* Military aircraft trails */}
+      {/* Military aircraft */}
       {milAircraft.map((ac) =>
         ac.trail.length > 1 ? (
           <Polyline key={`miltrail-${ac.id}`} positions={ac.trail} pathOptions={{ color: '#ff2d55', weight: 1, opacity: 0.4 }} />
         ) : null,
       )}
-      {/* Military aircraft markers (delta jet, blinking red) */}
       {milAircraft.map((ac) => (
         <Marker
           key={ac.id}
@@ -278,13 +350,12 @@ export default function MapView({
         />
       ))}
 
-      {/* Helicopter trails */}
+      {/* Helicopters */}
       {helicopters.map((ac) =>
         ac.trail.length > 1 ? (
           <Polyline key={`helitrail-${ac.id}`} positions={ac.trail} pathOptions={{ color: ac.military ? '#ff2d55' : '#fbbf24', weight: 1, opacity: 0.35 }} />
         ) : null,
       )}
-      {/* Helicopter markers */}
       {helicopters.map((ac) => (
         <Marker
           key={ac.id}
@@ -294,13 +365,12 @@ export default function MapView({
         />
       ))}
 
-      {/* Civil ship trails */}
+      {/* Civil ships */}
       {civShips.map((s) =>
         s.trail.length > 1 ? (
           <Polyline key={`cstrail-${s.id}`} positions={s.trail} pathOptions={{ color: '#22d3ee', weight: 1, opacity: 0.35 }} />
         ) : null,
       )}
-      {/* Civil ship markers */}
       {civShips.map((s) => (
         <Marker
           key={s.id}
@@ -310,13 +380,12 @@ export default function MapView({
         />
       ))}
 
-      {/* Naval ship trails */}
+      {/* Naval ships */}
       {milShips.map((s) =>
         s.trail.length > 1 ? (
           <Polyline key={`mstrail-${s.id}`} positions={s.trail} pathOptions={{ color: '#ff2d55', weight: 1, opacity: 0.4 }} />
         ) : null,
       )}
-      {/* Naval ship markers (warship with anchor badge) */}
       {milShips.map((s) => (
         <Marker
           key={s.id}
@@ -326,35 +395,30 @@ export default function MapView({
         />
       ))}
 
-      {/* Satellite trails */}
-      {layers.satellites &&
-        satellites.map((sat) =>
-          sat.trail.length > 1 ? (
-            <Polyline
-              key={`sattrail-${sat.id}`}
-              positions={sat.trail}
-              pathOptions={{
-                color: sat.category === 'ISS' ? '#fbbf24' : sat.category === 'GPS' ? '#2dffaa' : '#a855f7',
-                weight: 1,
-                opacity: 0.4,
-                dashArray: '3 3',
-              }}
+      {/* Satellites — four groups */}
+      {satLayers.map(({ key, list }) => (
+        <Fragment key={key}>
+          {list.map((sat) =>
+            sat.trail.length > 1 ? (
+              <Polyline
+                key={`sattrail-${sat.id}`}
+                positions={sat.trail}
+                pathOptions={{ color: SAT_GROUP_COLOR[sat.group], weight: 1, opacity: 0.4, dashArray: '3 3' }}
+              />
+            ) : null,
+          )}
+          {list.map((sat) => (
+            <Marker
+              key={sat.id}
+              position={[sat.lat, sat.lon]}
+              icon={selectedId === sat.id ? selectedPulse(SAT_GROUP_COLOR[sat.group]) : satIcon(sat.category, SAT_GROUP_COLOR[sat.group])}
+              eventHandlers={{ click: () => onSelect({ kind: 'satellite', data: sat }) }}
             />
-          ) : null,
-        )}
+          ))}
+        </Fragment>
+      ))}
 
-      {/* Satellite markers */}
-      {layers.satellites &&
-        satellites.map((sat) => (
-          <Marker
-            key={sat.id}
-            position={[sat.lat, sat.lon]}
-            icon={selectedId === sat.id ? selectedPulse('#fbbf24') : satIcon(sat.category)}
-            eventHandlers={{ click: () => onSelect({ kind: 'satellite', data: sat }) }}
-          />
-        ))}
-
-      {/* Radio markers */}
+      {/* Radios */}
       {layers.radios &&
         radios.map((r) => (
           <Marker
@@ -365,7 +429,7 @@ export default function MapView({
           />
         ))}
 
-      {/* CCTV markers */}
+      {/* CCTV */}
       {layers.cctv &&
         cctv.map((c) => (
           <Marker
@@ -373,7 +437,11 @@ export default function MapView({
             position={[c.lat, c.lon]}
             icon={selectedId === c.id ? selectedPulse('#2dffaa') : cctvIcon()}
             eventHandlers={{ click: () => onSelect({ kind: 'cctv', data: c }) }}
-          />
+          >
+            <Tooltip direction="top" offset={[0, -8]} className="hud-tooltip">
+              {c.name}
+            </Tooltip>
+          </Marker>
         ))}
     </MapContainer>
   );

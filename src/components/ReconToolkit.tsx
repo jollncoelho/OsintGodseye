@@ -1,45 +1,62 @@
 import { useState } from 'react';
-import { Camera, Activity, Satellite, X, ChevronRight } from 'lucide-react';
+import { Camera, Activity, Satellite, X, Bug, Images } from 'lucide-react';
 import type { Earthquake } from '@/types';
 
 type Props = {
   earthquakes: Earthquake[];
   eqLoading: boolean;
   eqError: string | null;
+  cyberCount: number;
   onOpenLiveFeeds: () => void;
+  onOpenCameraGallery: () => void;
   onToggleCctv: () => void;
   cctvActive: boolean;
+  cctvCount: number;
 };
 
 type Tool = 'earthquakes' | null;
 
-export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLiveFeeds, onToggleCctv, cctvActive }: Props) {
+export default function ReconToolkit({
+  earthquakes, eqLoading, eqError, cyberCount,
+  onOpenLiveFeeds, onOpenCameraGallery, onToggleCctv, cctvActive, cctvCount,
+}: Props) {
   const [activeTool, setActiveTool] = useState<Tool>(null);
-
-  const toggleTool = (tool: Tool) => {
-    setActiveTool((prev) => (prev === tool ? null : tool));
-  };
 
   return (
     <>
-      {/* Collapsed: vertical icon bar */}
       {!activeTool && (
         <div className="glass absolute right-3 top-28 z-[650] flex flex-col gap-2 rounded-lg border border-cyan/25 bg-black/85 p-1.5 no-select">
           <ToolButton
             icon={<Camera className="h-4 w-4" />}
             label="CAMS"
             onClick={onToggleCctv}
-            title="Toggle webcam layer"
+            title={`Toggle camera layer (${cctvCount} feeds)`}
             active={cctvActive}
+          />
+          <div className="h-px w-7 bg-cyan/15" />
+          <ToolButton
+            icon={<Images className="h-4 w-4" />}
+            label="WALL"
+            onClick={onOpenCameraGallery}
+            title="Open the live camera wall"
           />
           <div className="h-px w-7 bg-cyan/15" />
           <ToolButton
             icon={<Activity className="h-4 w-4" />}
             label="SEISMIC"
-            onClick={() => toggleTool('earthquakes')}
+            onClick={() => setActiveTool((p) => (p === 'earthquakes' ? null : 'earthquakes'))}
             title="USGS earthquake alerts"
             badge={earthquakes.length > 0 ? earthquakes.length : undefined}
             badgeColor="bg-amber"
+          />
+          <div className="h-px w-7 bg-cyan/15" />
+          <ToolButton
+            icon={<Bug className="h-4 w-4" />}
+            label="CYBER"
+            onClick={onOpenLiveFeeds}
+            title="Threat & feed console"
+            badge={cyberCount > 0 ? cyberCount : undefined}
+            badgeColor="bg-green"
           />
           <div className="h-px w-7 bg-cyan/15" />
           <ToolButton
@@ -51,7 +68,6 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
         </div>
       )}
 
-      {/* Expanded: Earthquake alerts panel */}
       {activeTool === 'earthquakes' && (
         <div className="glass slide-up absolute right-3 top-28 z-[650] flex h-[60vh] w-72 flex-col rounded-lg border border-amber/30 bg-black/85 p-3 no-select">
           <div className="flex items-center justify-between">
@@ -59,7 +75,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
               <Activity className="h-4 w-4 text-amber" />
               <span className="text-[10px] font-bold tracking-[0.2em] text-amber">SEISMIC ALERTS</span>
             </div>
-            <button onClick={() => toggleTool(null)} className="text-slate-500 hover:text-danger">
+            <button onClick={() => setActiveTool(null)} className="text-slate-500 hover:text-danger">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -71,11 +87,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
             </div>
           )}
 
-          {eqError && (
-            <div className="flex flex-1 items-center justify-center text-[10px] text-danger">
-              Feed error: {eqError}
-            </div>
-          )}
+          {eqError && <div className="flex flex-1 items-center justify-center text-[10px] text-danger">Feed error: {eqError}</div>}
 
           {!eqLoading && !eqError && earthquakes.length === 0 && (
             <div className="flex flex-1 items-center justify-center text-[10px] text-slate-600">
@@ -84,7 +96,7 @@ export default function ReconToolkit({ earthquakes, eqLoading, eqError, onOpenLi
           )}
 
           {!eqLoading && !eqError && earthquakes.length > 0 && (
-            <div className="mt-2 flex-1 overflow-y-auto space-y-1.5">
+            <div className="mt-2 flex-1 space-y-1.5 overflow-y-auto">
               {earthquakes
                 .slice()
                 .sort((a, b) => b.magnitude - a.magnitude)
@@ -131,9 +143,7 @@ function ToolButton({
       onClick={onClick}
       title={title}
       className={`group relative flex h-10 w-10 flex-col items-center justify-center gap-0.5 rounded border transition ${
-        active
-          ? 'border-cyan/40 bg-cyan/15'
-          : 'border-transparent hover:border-cyan/30 hover:bg-cyan/10'
+        active ? 'border-cyan/40 bg-cyan/15' : 'border-transparent hover:border-cyan/30 hover:bg-cyan/10'
       }`}
     >
       <span className={active ? 'text-cyan' : 'text-cyan/70 group-hover:text-cyan'}>{icon}</span>

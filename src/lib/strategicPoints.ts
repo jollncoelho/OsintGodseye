@@ -34,8 +34,8 @@ export const STRATEGIC_POINTS: StrategicPoint[] = [
   { id: 'conf-4', name: 'Myanmar Civil War', category: 'conflict_zone', lat: 21.9162, lon: 95.9560, description: 'Junta vs. resistance forces', status: 'ACTIVE CONFLICT' },
   { id: 'conf-5', name: 'Yemen — Marib', category: 'conflict_zone', lat: 15.4625, lon: 45.3247, description: 'Houthi-Saudi coalition conflict', status: 'ACTIVE CONFLICT' },
   { id: 'conf-6', name: 'Sahel — Mali', category: 'conflict_zone', lat: 16.7666, lon: -3.0026, description: 'Jihadist insurgency, coup-affected region', status: 'ACTIVE CONFLICT' },
-  { id: 'conf-7', name: 'South China Sea — Spratlys', category: 'conflict_zone', lat: 10.0000, lon: 114.0000, description: 'Territorial disputes, militarized reefs', status: 'TENSION — MONITORED' },
-  { id: 'conf-8', name: 'Taiwan Strait', category: 'conflict_zone', lat: 24.0000, lon: 120.0000, description: 'PRC-Taiwan military tension zone', status: 'TENSION — MONITORED' },
+  { id: 'conf-7', name: 'South China Sea — Spratly Islands', category: 'conflict_zone', lat: 10.0000, lon: 114.0000, description: 'Territorial disputes over reefs and features; monitored shipping lane', status: 'TENSION — MONITORED' },
+  { id: 'conf-8', name: 'Taiwan Strait (China)', category: 'conflict_zone', lat: 24.0000, lon: 120.0000, description: 'Maritime and airspace activity monitoring area', status: 'TENSION — MONITORED' },
   { id: 'conf-9', name: 'Syria — Idlib', category: 'conflict_zone', lat: 35.5600, lon: 36.5600, description: 'Last rebel-held enclave', status: 'ACTIVE CONFLICT' },
   { id: 'conf-10', name: 'Red Sea — Houthi Attacks', category: 'conflict_zone', lat: 14.0000, lon: 42.0000, description: 'Shipping attacks, maritime threat', status: 'ACTIVE CONFLICT' },
 ];

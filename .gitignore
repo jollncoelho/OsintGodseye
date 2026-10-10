@@ -1,3 +1,19 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build output
+dist
+dist-ssr
+build
+*.tsbuildinfo
+
+# Vite
+.vite
+.vite-*
+
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -6,18 +22,28 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Environment
+.env
+.env.local
+.env.*.local
 *.local
 
+# Editor / OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# Tooling scratch
+.playwright-cli
+coverage
+.eslintcache
+
+# Serverless / deployment
+.vercel

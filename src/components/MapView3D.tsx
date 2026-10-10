@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MLMap, Marker as MLMarker, MapMouseEvent } from 'maplibre-gl';
-import type { Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget } from '@/types';
+import type {
+  Aircraft, Ship, Satellite, RadioStation, CctvCamera, BaseLayerKey, LayerKey, SelectedTarget,
+  CyberThreat, GlobalIncident, InfrastructureSite,
+} from '@/types';
+import { nightPolygon } from '@/lib/terminator';
+import { CYBER_SEVERITY_COLOR } from '@/lib/cyber';
+import { INCIDENT_CATEGORY_COLOR } from '@/lib/incidents';
+import { INFRA_CATEGORY_COLOR } from '@/lib/infrastructure';
+import { SAT_GROUP_COLOR } from '@/lib/satelliteColors';
 
 type Props = {
   baseLayer: BaseLayerKey;
@@ -11,6 +19,9 @@ type Props = {
   satellites: Satellite[];
   radios: RadioStation[];
   cctv: CctvCamera[];
+  cyber: CyberThreat[];
+  incidents: GlobalIncident[];
+  infrastructure: InfrastructureSite[];
   selected: SelectedTarget;
   onSelect: (t: SelectedTarget) => void;
   onMapClick: (lat: number, lon: number, zoom: number) => void;
@@ -40,6 +51,10 @@ const TILE_SOURCES: Record<BaseLayerKey, { url: string; maxZoom: number }> = {
   },
 };
 
+/** Keyless global vector tiles with a `building` source-layer (OpenFreeMap). */
+const BUILDINGS_TILES = 'https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf';
+const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+
 function planeSvg(heading: number, military: boolean): string {
   const color = military ? '#ff2d55' : '#22d3ee';
   return `<svg viewBox="0 0 24 24" width="24" height="24" style="transform:rotate(${heading}deg);fill:${color};stroke:#0a0f18;stroke-width:0.4"><path d="M12 2L13.2 9.5 21 11.5 21 13 13.2 12.6 13.5 18 16 19.5 16 20.5 12.5 19.5 11.5 20.5 8 20.5 8 19.5 10.5 18 10.8 12.6 3 13 3 11.5 10.8 9.5z"/></svg>`;
@@ -59,8 +74,7 @@ function shipSvg(heading: number, naval: boolean): string {
   return `<svg viewBox="0 0 24 24" width="22" height="22" style="transform:rotate(${heading}deg);fill:${color};stroke:#0a0f18;stroke-width:0.5"><path d="M3 13L21 13L20 17L4 17Z M12 3L12 13 M9 6L15 6L15 11L9 11Z"/></svg>`;
 }
 
-function satSvg(category: string): string {
-  const color = category === 'ISS' ? '#fbbf24' : category === 'GPS' ? '#2dffaa' : '#a855f7';
+function satSvg(color: string): string {
   return `<svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:${color};stroke-width:1.6"><path d="M12 7a5 5 0 100 10 5 5 0 000-10z M4 9l4 0 M4 15l4 0 M16 9l4 0 M16 15l4 0 M9 4l0 4 M15 4l0 4 M9 16l0 4 M15 16l0 4"/></svg>`;
 }
 
@@ -70,6 +84,18 @@ function radioSvg(): string {
 
 function cctvSvg(): string {
   return `<svg viewBox="0 0 24 24" width="20" height="20" style="fill:#2dffaa;stroke:#0a0f18;stroke-width:0.4"><rect x="5" y="7" width="11" height="7" rx="1.5" transform="rotate(-15 10 10)"/><path d="M16 10l4-2v3l-4 1z"/><circle cx="10" cy="10.5" r="1.8" fill="#0a0f18"/></svg>`;
+}
+
+function cyberSvg(color: string): string {
+  return `<svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:${color};stroke-width:1.5"><rect x="4" y="4" width="16" height="12" rx="1.5"/><path d="M8 20h8 M12 16v4 M8.5 10.5l1.8 1.8 3.2-3.6"/></svg>`;
+}
+
+function incidentSvg(color: string): string {
+  return `<svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:${color};stroke-width:1.5"><circle cx="12" cy="12" r="8"/><path d="M12 7.5v5.5" stroke-width="1.8"/><circle cx="12" cy="16.2" r="1" fill="${color}" stroke="none"/></svg>`;
+}
+
+function infraSvg(color: string): string {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:${color};stroke-width="1.4"><path d="M4 20V9l8-5 8 5v11 M9 20v-6h6v6 M4 20h16"/></svg>`;
 }
 
 function reticleSvg(): string {
@@ -95,30 +121,23 @@ function createMarkerEl(svg: string, selected: boolean): HTMLElement {
   return el;
 }
 
-function sunPosition(): { lat: number; lon: number } {
-  const now = new Date();
-  const julianDay = (now.getTime() / 86400000) + 2440587.5;
-  const n = julianDay - 2451545.0;
-  const meanLong = (280.460 + 0.9856474 * n) % 360;
-  const meanAnom = (357.528 + 0.9856003 * n) % 360;
-  const eclipticLong = (meanLong + 1.915 * Math.sin(meanAnom * Math.PI / 180) + 0.020 * Math.sin(2 * meanAnom * Math.PI / 180)) % 360;
-  const obliquity = 23.4397 - 0.0000004 * n;
-  const ra = Math.atan2(Math.cos(obliquity * Math.PI / 180) * Math.sin(eclipticLong * Math.PI / 180), Math.cos(eclipticLong * Math.PI / 180)) * 180 / Math.PI;
-  const dec = Math.asin(Math.sin(obliquity * Math.PI / 180) * Math.sin(eclipticLong * Math.PI / 180)) * 180 / Math.PI;
-  const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
-  const greenwichHourAngle = (6.697375 + 0.0657098242 * n + utcHours) * 15 % 360;
-  const lon = (ra - greenwichHourAngle + 540) % 360 - 180;
-  return { lat: dec, lon };
-}
-
 export default function MapView3D({
-  baseLayer, layers, aircraft, ships, satellites, radios, cctv, selected, onSelect,
+  baseLayer, layers, aircraft, ships, satellites, radios, cctv, cyber, incidents, infrastructure, selected, onSelect,
   onMapClick, onCursorMove, pitch, bearing, terrainEnabled, hillshadeEnabled, buildings3DEnabled,
   flyTo, onFlyToDone, reticle,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
   const markersRef = useRef<Map<string, MLMarker>>(new Map());
+  /**
+   * Last rendered appearance per marker id (`svg|selected`).
+   *
+   * The marker sync effect re-runs on every data tick, and rebuilding the DOM
+   * of every marker on each pass is ruinous once hundreds of live AIS vessels
+   * are on screen. Markers whose visual is unchanged only get a cheap
+   * `setLngLat`, which is what a position update should cost.
+   */
+  const markerPaintRef = useRef<Map<string, string>>(new Map());
   const [mapReady, setMapReady] = useState(false);
   const selectedId = selected ? (selected.data as { id: string }).id : null;
 
@@ -145,18 +164,8 @@ export default function MapView3D({
               },
             },
             layers: [
-              {
-                id: 'background',
-                type: 'background',
-                paint: { 'background-color': '#020408' },
-              },
-              {
-                id: 'raster-layer',
-                type: 'raster',
-                source: 'raster-tiles',
-                minzoom: 0,
-                maxzoom: ts.maxZoom,
-              },
+              { id: 'background', type: 'background', paint: { 'background-color': '#020408' } },
+              { id: 'raster-layer', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: ts.maxZoom },
             ],
           },
       center: [20, 10],
@@ -171,98 +180,101 @@ export default function MapView3D({
     mapRef.current = map;
 
     map.on('load', () => {
-      try { map.setProjection({ type: 'globe' }); } catch { /* globe may already be set */ }
+      // Every optional layer is added defensively: a single failed upstream
+      // source must never abort the rest of the map (this is what used to
+      // leave the 3D view black).
+      try { map.setProjection({ type: 'globe' }); } catch { /* already globe */ }
 
-      map.addSource('terrain', {
-        type: 'raster-dem',
-        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-        encoding: 'terrarium',
-        tileSize: 256,
-        maxzoom: 15,
-      });
-
-      map.addSource('hillshade-source', {
-        type: 'raster-dem',
-        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-        encoding: 'terrarium',
-        tileSize: 256,
-        maxzoom: 15,
-      });
-
-      map.addLayer({
-        id: 'hillshade',
-        type: 'hillshade',
-        source: 'hillshade-source',
-        layout: { visibility: 'none' },
-        paint: {
-          'hillshade-shadow-color': '#0a0f18',
-          'hillshade-illumination-direction': 315,
-          'hillshade-exaggeration': 1.5,
-        },
-      });
-
-      map.addSource('osm-buildings', {
-        type: 'vector',
-        tiles: ['https://tiles.mapillary.com/openstreetmap-buildings/v1/{z}/{x}/{y}.pbf'],
-        maxzoom: 16,
-      });
-
-      map.addLayer({
-        id: '3d-buildings',
-        type: 'fill-extrusion',
-        source: 'osm-buildings',
-        'source-layer': 'building',
-        minzoom: 14,
-        layout: { visibility: 'none' },
-        paint: {
-          'fill-extrusion-color': [
-            'interpolate', ['linear'], ['get', 'render_height'],
-            0, '#0a0f18', 50, '#0891b2', 100, '#22d3ee', 200, '#fbbf24',
-          ],
-          'fill-extrusion-height': ['get', 'render_height'],
-          'fill-extrusion-base': ['get', 'render_min_height'],
-          'fill-extrusion-opacity': 0.7,
-        },
-      });
-
-      map.addLayer({
-        id: '3d-buildings-wireframe',
-        type: 'line',
-        source: 'osm-buildings',
-        'source-layer': 'building',
-        minzoom: 14,
-        layout: { visibility: 'none' },
-        paint: { 'line-color': '#22d3ee', 'line-width': 0.5, 'line-opacity': 0.4 },
-      });
-
-      // Day/night terminator overlay
-      addTerminatorLayer(map);
-
-      // Atmosphere/globe glow effect
       try {
-        (map as unknown as { setFog: (opts: Record<string, unknown>) => void }).setFog({
+        map.addSource('terrain', {
+          type: 'raster-dem',
+          tiles: [TERRAIN_TILES],
+          encoding: 'terrarium',
+          tileSize: 256,
+          maxzoom: 15,
+        });
+      } catch { /* terrain unavailable */ }
+
+      try {
+        map.addSource('hillshade-source', {
+          type: 'raster-dem',
+          tiles: [TERRAIN_TILES],
+          encoding: 'terrarium',
+          tileSize: 256,
+          maxzoom: 15,
+        });
+        map.addLayer({
+          id: 'hillshade',
+          type: 'hillshade',
+          source: 'hillshade-source',
+          layout: { visibility: 'none' },
+          paint: {
+            'hillshade-shadow-color': '#0a0f18',
+            'hillshade-illumination-direction': 315,
+            // MapLibre caps this at 1; a higher value makes addLayer reject the
+            // whole layer, which then breaks every later setLayoutProperty call.
+            'hillshade-exaggeration': 1,
+          },
+        });
+      } catch { /* hillshade unavailable */ }
+
+      // OpenFreeMap planet vector tiles — keyless, has a `building` layer.
+      try {
+        map.addSource('osm-buildings', {
+          type: 'vector',
+          tiles: [BUILDINGS_TILES],
+          maxzoom: 14,
+        });
+        map.addLayer({
+          id: '3d-buildings',
+          type: 'fill-extrusion',
+          source: 'osm-buildings',
+          'source-layer': 'building',
+          minzoom: 13,
+          layout: { visibility: 'none' },
+          paint: {
+            'fill-extrusion-color': [
+              'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 10],
+              0, '#0a0f18', 50, '#0891b2', 100, '#22d3ee', 200, '#fbbf24',
+            ],
+            'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 10],
+            'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+            'fill-extrusion-opacity': 0.7,
+          },
+        });
+      } catch { /* vector tiles unavailable */ }
+
+      // Day/night terminator
+      try {
+        addTerminatorLayer(map);
+      } catch { /* terminator unavailable */ }
+
+      try {
+        (map as unknown as { setFog: (o: Record<string, unknown>) => void }).setFog({
           color: 'rgba(10, 15, 24, 0.6)',
           'high-color': 'rgba(34, 211, 238, 0.08)',
           'horizon-blend': 0.15,
           'space-color': '#020408',
           'star-intensity': 0.6,
         });
-      } catch { /* fog not available */ }
+      } catch { /* fog unavailable */ }
 
       if (baseLayer === 'satellite') {
-        map.addSource('ref-labels', {
-          type: 'raster',
-          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
-          tileSize: 256,
-          maxzoom: 18,
-        });
-        map.addLayer({
-          id: 'ref-labels-layer',
-          type: 'raster',
-          source: 'ref-labels',
-          minzoom: 0,
-          maxzoom: 18,
-        });
+        try {
+          map.addSource('ref-labels', {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 18,
+          });
+          map.addLayer({
+            id: 'ref-labels-layer',
+            type: 'raster',
+            source: 'ref-labels',
+            minzoom: 0,
+            maxzoom: 18,
+          });
+        } catch { /* labels unavailable */ }
       }
 
       setMapReady(true);
@@ -291,7 +303,6 @@ export default function MapView3D({
     map.easeTo({ pitch, bearing, duration: 500 });
   }, [pitch, bearing, mapReady]);
 
-  // Re-center globe perfectly on activation
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -301,25 +312,30 @@ export default function MapView3D({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    if (terrainEnabled) {
-      map.setTerrain({ source: 'terrain', exaggeration: 1.5 });
-    } else {
-      map.setTerrain(null);
-    }
+    try {
+      if (terrainEnabled) map.setTerrain({ source: 'terrain', exaggeration: 1.5 });
+      else map.setTerrain(null);
+    } catch { /* terrain source missing */ }
   }, [terrainEnabled, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    map.setLayoutProperty('hillshade', 'visibility', hillshadeEnabled ? 'visible' : 'none');
+    try {
+      if (map.getLayer('hillshade')) {
+        map.setLayoutProperty('hillshade', 'visibility', hillshadeEnabled ? 'visible' : 'none');
+      }
+    } catch { /* layer missing */ }
   }, [hillshadeEnabled, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    const vis = buildings3DEnabled ? 'visible' : 'none';
-    map.setLayoutProperty('3d-buildings', 'visibility', vis);
-    map.setLayoutProperty('3d-buildings-wireframe', 'visibility', vis);
+    try {
+      if (map.getLayer('3d-buildings')) {
+        map.setLayoutProperty('3d-buildings', 'visibility', buildings3DEnabled ? 'visible' : 'none');
+      }
+    } catch { /* layer missing */ }
   }, [buildings3DEnabled, mapReady]);
 
   useEffect(() => {
@@ -343,58 +359,55 @@ export default function MapView3D({
     const existingIds = new Set(markersRef.current.keys());
     const activeIds = new Set<string>();
 
-    const addMarker = (
-      id: string,
-      lat: number,
-      lon: number,
-      svg: string,
-      kind: string,
-      data: Aircraft | Ship | Satellite | RadioStation | CctvCamera,
-    ) => {
+    const addMarker = (id: string, lat: number, lon: number, svg: string, kind: string, data: unknown) => {
       activeIds.add(id);
       const existing = markersRef.current.get(id);
       const isSelected = selectedId === id;
+      const paint = `${svg}|${isSelected}`;
       if (existing) {
         existing.setLngLat([lon, lat]);
-        const el = existing.getElement();
-        const newEl = createMarkerEl(svg, isSelected);
-        el.replaceChildren(...newEl.childNodes);
+        // Only touch the DOM when the marker actually looks different.
+        if (markerPaintRef.current.get(id) !== paint) {
+          const el = existing.getElement();
+          const newEl = createMarkerEl(svg, isSelected);
+          el.replaceChildren(...Array.from(newEl.childNodes));
+          markerPaintRef.current.set(id, paint);
+        }
         return;
       }
       const el = createMarkerEl(svg, isSelected);
-      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([lon, lat])
-        .addTo(map);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([lon, lat]).addTo(map);
       el.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        onSelect({ kind: kind as never, data: data as never } as never);
+        onSelect({ kind, data } as never);
       });
       markersRef.current.set(id, marker);
+      markerPaintRef.current.set(id, paint);
     };
 
-    const civAc = layers.civAircraft ? aircraft.filter((a) => !a.military && !a.helicopter) : [];
-    civAc.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, planeSvg(ac.heading ?? 0, false), 'aircraft', ac));
+    if (layers.civAircraft) aircraft.filter((a) => !a.military && !a.helicopter).forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, planeSvg(ac.heading ?? 0, false), 'aircraft', ac));
+    if (layers.milAircraft) aircraft.filter((a) => a.military && !a.helicopter).forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, jetSvg(ac.heading ?? 0), 'aircraft', ac));
+    if (layers.helicopters) aircraft.filter((a) => a.helicopter).forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, heliSvg(ac.heading ?? 0, ac.military), 'aircraft', ac));
 
-    const milAc = layers.milAircraft ? aircraft.filter((a) => a.military && !a.helicopter) : [];
-    milAc.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, jetSvg(ac.heading ?? 0), 'aircraft', ac));
+    if (layers.civShips) ships.filter((s) => !s.naval).forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, false), 'ship', s));
+    if (layers.milShips) ships.filter((s) => s.naval).forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, true), 'ship', s));
 
-    const helis = layers.helicopters ? aircraft.filter((a) => a.helicopter) : [];
-    helis.forEach((ac) => addMarker(ac.id, ac.lat, ac.lon, heliSvg(ac.heading ?? 0, ac.military), 'aircraft', ac));
+    const satGroups: [LayerKey, Satellite['group']][] = [
+      ['satComms', 'comms'],
+      ['satMilitary', 'military'],
+      ['satNav', 'navigation'],
+      ['satEarthObs', 'earthobs'],
+    ];
+    for (const [key, group] of satGroups) {
+      if (!layers[key]) continue;
+      satellites.filter((s) => s.group === group).forEach((sat) => addMarker(sat.id, sat.lat, sat.lon, satSvg(SAT_GROUP_COLOR[group]), 'satellite', sat));
+    }
 
-    const civSh = layers.civShips ? ships.filter((s) => !s.naval) : [];
-    civSh.forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, false), 'ship', s));
-
-    const milSh = layers.milShips ? ships.filter((s) => s.naval) : [];
-    milSh.forEach((s) => addMarker(s.id, s.lat, s.lon, shipSvg(s.heading, true), 'ship', s));
-
-    const sats = layers.satellites ? satellites : [];
-    sats.forEach((sat) => addMarker(sat.id, sat.lat, sat.lon, satSvg(sat.category), 'satellite', sat));
-
-    const rads = layers.radios ? radios : [];
-    rads.forEach((r) => addMarker(r.id, r.lat, r.lon, radioSvg(), 'radio', r));
-
-    const cams = layers.cctv ? cctv : [];
-    cams.forEach((c) => addMarker(c.id, c.lat, c.lon, cctvSvg(), 'cctv', c));
+    if (layers.radios) radios.forEach((r) => addMarker(r.id, r.lat, r.lon, radioSvg(), 'radio', r));
+    if (layers.cctv) cctv.forEach((c) => addMarker(c.id, c.lat, c.lon, cctvSvg(), 'cctv', c));
+    if (layers.cyber) cyber.forEach((t) => addMarker(t.id, t.lat, t.lon, cyberSvg(CYBER_SEVERITY_COLOR[t.severity]), 'cyber', t));
+    if (layers.incidents) incidents.forEach((i) => addMarker(i.id, i.lat, i.lon, incidentSvg(INCIDENT_CATEGORY_COLOR[i.category]), 'incident', i));
+    if (layers.infrastructure) infrastructure.forEach((s) => addMarker(s.id, s.lat, s.lon, infraSvg(INFRA_CATEGORY_COLOR[s.category]), 'infrastructure', s));
 
     if (reticle) {
       const rid = 'reticle-marker';
@@ -406,9 +419,7 @@ export default function MapView3D({
         const el = document.createElement('div');
         el.style.pointerEvents = 'none';
         el.innerHTML = reticleSvg();
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([reticle[1], reticle[0]])
-          .addTo(map);
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([reticle[1], reticle[0]]).addTo(map);
         markersRef.current.set(rid, marker);
       }
     }
@@ -416,37 +427,32 @@ export default function MapView3D({
     existingIds.forEach((id) => {
       if (!activeIds.has(id)) {
         const m = markersRef.current.get(id);
-        if (m) { m.remove(); markersRef.current.delete(id); }
+        if (m) {
+          m.remove();
+          markersRef.current.delete(id);
+          markerPaintRef.current.delete(id);
+        }
       }
     });
-  }, [aircraft, ships, satellites, radios, cctv, layers, mapReady, selectedId, onSelect, reticle]);
+  }, [aircraft, ships, satellites, radios, cctv, cyber, incidents, infrastructure, layers, mapReady, selectedId, onSelect, reticle]);
 
   return <div ref={containerRef} className="absolute inset-0" style={{ background: '#020408', cursor: 'crosshair' }} />;
 }
 
 function addTerminatorLayer(map: MLMap) {
-  const sun = sunPosition();
-  const radius = 90;
-  const points: [number, number][] = [];
-  for (let bearing = 0; bearing <= 360; bearing += 3) {
-    const rad = bearing * Math.PI / 180;
-    const lat = Math.asin(Math.sin(sun.lat * Math.PI / 180) * Math.cos(rad) + Math.cos(sun.lat * Math.PI / 180) * Math.sin(rad) * Math.cos(radius * Math.PI / 180)) * 180 / Math.PI;
-    let lon = sun.lon + Math.atan2(
-      Math.sin(rad) * Math.sin(radius * Math.PI / 180) * Math.cos(sun.lat * Math.PI / 180),
-      Math.cos(radius * Math.PI / 180) - Math.sin(sun.lat * Math.PI / 180) * Math.sin(lat * Math.PI / 180)
-    ) * 180 / Math.PI;
-    lon = ((lon + 540) % 360) - 180;
-    points.push([lon, lat]);
+  const ring = nightPolygon(new Date());
+  // Close the ring (first point repeated) — an unclosed ring renders as a
+  // sliver in MapLibre.
+  const closed = ring.map(([lat, lon]) => [lon, lat] as [number, number]);
+  if (closed.length && (closed[0][0] !== closed[closed.length - 1][0] || closed[0][1] !== closed[closed.length - 1][1])) {
+    closed.push(closed[0]);
   }
 
   map.addSource('terminator', {
     type: 'geojson',
     data: {
       type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [points.map(([lon, lat]) => [lon, lat]), []],
-      },
+      geometry: { type: 'Polygon', coordinates: [closed] },
       properties: {},
     } as never,
   });
@@ -455,10 +461,6 @@ function addTerminatorLayer(map: MLMap) {
     id: 'terminator-fill',
     type: 'fill',
     source: 'terminator',
-    paint: {
-      'fill-color': '#020408',
-      'fill-opacity': 0.45,
-    },
-    layout: { visibility: 'visible' },
+    paint: { 'fill-color': '#020408', 'fill-opacity': 0.45 },
   });
 }

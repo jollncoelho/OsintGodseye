@@ -53,24 +53,41 @@ const COMMERCIAL_AIRLINES = ['UAL', 'DAL', 'AAL', 'BAW', 'AFR', 'DLH', 'UAE', 'S
 
 const AIRPORTS = ['JFK','LAX','LHR','CDG','FRA','DXB','SIN','HND','AMS','MAD','IST','DOH','ICN','SYD','GRU','YYZ','NRT','KIX','ZRH','VIE','MUC','FCO','ATH','CPH','ARN','OSL','HEL','WAW','PRG','BRU','LIS','DUB','GLA','EDI','MAN','BOS','ORD','SFO','SEA','MIA','DFW','ATL','DEN','LAS','PHX','MSP','DTW','PHL','CLT','IAD','DCA','BWI','TPA','MCO','FLL','RSW','PBI','JAX','MEM','SLC','PDX','AUS','SAT','HOU','DAL','ABQ','BOI','BIL','RAP','FAR','BGR','PWM','BTV','SYR','ROC','BUF','ALB','PIT','CLE','CVG','IND','STL','MCI','OMA','DSM','ICT','TUL','OKC','LIT','JAN','BHM','HSV','CHA','TRI','ROA','LYH','SHD','LBE','JST','AOO','DUJ','IDI','JHW','ELZ','BFD','FKL','VIT','GKT','PUN','HZD'];
 
-function randomRoute() {
-  const a = AIRPORTS[Math.floor(Math.random() * AIRPORTS.length)];
-  let b = AIRPORTS[Math.floor(Math.random() * AIRPORTS.length)];
-  while (b === a) b = AIRPORTS[Math.floor(Math.random() * AIRPORTS.length)];
+/** Stable 32-bit string hash — keeps derived metadata identical across refreshes. */
+function hash(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Deterministic pick from a list, seeded by a stable key. */
+function pick<T>(list: T[], key: string, salt = 0): T {
+  return list[(hash(key) + salt * 2654435761) % list.length];
+}
+
+function routeFor(callsign: string, icao24: string) {
+  const a = pick(AIRPORTS, callsign + icao24, 1);
+  let b = pick(AIRPORTS, icao24 + callsign, 2);
+  if (b === a) b = AIRPORTS[(AIRPORTS.indexOf(a) + 7) % AIRPORTS.length];
   return { origin: a, destination: b };
 }
 
-function isHelicopter(callsign: string, altitude: number | null, groundSpeed: number | null, typeCode: string | null): boolean {
+function isHelicopter(callsign: string, altitude: number | null, groundSpeed: number | null, typeCode: string | null, icao24: string): boolean {
   const cs = callsign.toUpperCase();
   if (HELI_CALLSIGNS.some((p) => cs.startsWith(p))) return true;
   if (typeCode && HELI_TYPE_CODES.some((c) => typeCode.toUpperCase().includes(c))) return true;
+  // Low and slow — classify deterministically so the icon never flips between
+  // refreshes (the old code rolled a fresh random number every poll).
   if (altitude != null && groundSpeed != null && altitude < 3000 && groundSpeed < 80) {
-    return Math.random() < 0.25;
+    return hash(icao24) % 100 < 25;
   }
   return false;
 }
 
-function pickModel(callsign: string, military: boolean, helicopter: boolean, typeCode: string | null, desc: string | null, ownOp: string | null) {
+function pickModel(callsign: string, military: boolean, helicopter: boolean, typeCode: string | null, desc: string | null, ownOp: string | null, icao24: string) {
   if (helicopter) {
     const heliModels = [
       { model: 'UH-60 Black Hawk', manufacturer: 'Sikorsky' },
@@ -82,7 +99,7 @@ function pickModel(callsign: string, military: boolean, helicopter: boolean, typ
       { model: 'Sikorsky S-76', manufacturer: 'Sikorsky' },
       { model: 'Eurocopter EC135', manufacturer: 'Airbus' },
     ];
-    const m = heliModels[Math.floor(Math.random() * heliModels.length)];
+    const m = pick(heliModels, icao24, 3);
     const milHeli = military || ['UH-60', 'CH-47', 'AH-64'].some((p) => m.model.startsWith(p));
     return { model: m.model, manufacturer: m.manufacturer, operator: milHeli ? 'Military' : 'Civilian' };
   }
@@ -92,7 +109,7 @@ function pickModel(callsign: string, military: boolean, helicopter: boolean, typ
     if (found) return found;
     if (desc) return { model: desc, manufacturer: 'Military', operator: ownOp ?? 'Military' };
     const generic = ['C-17 Globemaster III', 'F-35A Lightning II', 'P-8A Poseidon', 'KC-46A Pegasus', 'A400M Atlas'];
-    return { model: generic[Math.floor(Math.random() * generic.length)], manufacturer: 'Military', operator: 'Military' };
+    return { model: pick(generic, icao24, 4), manufacturer: 'Military', operator: 'Military' };
   }
   if (desc) {
     const airline = COMMERCIAL_AIRLINES.find((a) => callsign.toUpperCase().startsWith(a)) ?? 'Unknown';
@@ -109,7 +126,7 @@ function pickModel(callsign: string, military: boolean, helicopter: boolean, typ
     { model: 'B767-300ER', manufacturer: 'Boeing' },
     { model: 'A330-300', manufacturer: 'Airbus' },
   ];
-  const m = commercialModels[Math.floor(Math.random() * commercialModels.length)];
+  const m = pick(commercialModels, icao24, 5);
   const airline = COMMERCIAL_AIRLINES.find((a) => callsign.toUpperCase().startsWith(a)) ?? 'Unknown';
   return { model: m.model, manufacturer: m.manufacturer, operator: airline };
 }
@@ -129,7 +146,7 @@ function parseAdsbAircraft(ac: AdsbAircraft, militaryOnly: boolean, trailsRef: R
   const military = isMilitaryFlight(callsign, hex, originCountry) || isMilFromDbFlags(dbFlags);
   const altitude = alt_baro === 'ground' ? 0 : (alt_baro ?? alt_geom);
   const heading = track ?? true_heading;
-  const helicopter = isHelicopter(callsign, altitude, gs, t);
+  const helicopter = isHelicopter(callsign, altitude, gs, t, hex);
 
   if (militaryOnly && !military) return null;
 
@@ -139,8 +156,8 @@ function parseAdsbAircraft(ac: AdsbAircraft, militaryOnly: boolean, trailsRef: R
   if (trail.length > 40) trail.shift();
   trailsRef.current.set(id, trail);
 
-  const meta = pickModel(callsign, military, helicopter, t, desc, own_op);
-  const route = randomRoute();
+  const meta = pickModel(callsign, military, helicopter, t, desc, own_op, hex);
+  const route = routeFor(callsign, hex);
 
   return {
     id,

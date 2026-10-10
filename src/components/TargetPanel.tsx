@@ -3,11 +3,15 @@ import {
   X, Plane, Ship, Satellite, Radio, Camera, Gauge, Compass, ArrowUp,
   Flag, Building2, Hash, Navigation, Radio as RadioIcon, Volume2,
   MapPin, Wind, Thermometer, Clock, Mountain, Copy, ZoomIn, Globe,
-  Eye, ExternalLink, Activity, Signal, AlertTriangle,
+  Eye, ExternalLink, Activity, Signal, AlertTriangle, Bug, Factory, Zap, ShieldAlert,
 } from 'lucide-react';
 import type { SelectedTarget } from '@/types';
 import { fmtAlt, fmtSpeed, fmtHeading, fmtClimb } from '@/lib/format';
 import { weatherDescription } from '@/hooks/useTerritoryIntel';
+import { SAT_GROUP_LABEL, SAT_GROUP_COLOR } from '@/lib/satelliteColors';
+import { CYBER_CATEGORY_LABEL, CYBER_SEVERITY_COLOR } from '@/lib/cyber';
+import { INCIDENT_CATEGORY_LABEL, INCIDENT_CATEGORY_COLOR } from '@/lib/incidents';
+import { INFRA_CATEGORY_LABEL, INFRA_CATEGORY_COLOR } from '@/lib/infrastructure';
 
 type Props = {
   target: SelectedTarget;
@@ -67,6 +71,9 @@ export default function TargetPanel({ target, onClose }: Props) {
         {target.kind === 'satellite' && <SatDetails data={target.data} />}
         {target.kind === 'radio' && <RadioDetails data={target.data} />}
         {target.kind === 'cctv' && <CctvDetails data={target.data} />}
+        {target.kind === 'cyber' && <CyberDetails data={target.data} />}
+        {target.kind === 'incident' && <IncidentDetails data={target.data} />}
+        {target.kind === 'infrastructure' && <InfraDetails data={target.data} />}
         {target.kind === 'territory' && <TerritoryDetails data={target.data} />}
         {target.kind === 'conflict' && <ConflictDetails data={target.data} />}
       </div>
@@ -84,6 +91,9 @@ function TargetIcon({ kind }: { kind: string }) {
   if (kind === 'satellite') return <Satellite className={cls} />;
   if (kind === 'radio') return <Radio className={cls} />;
   if (kind === 'territory') return <Globe className={cls} />;
+  if (kind === 'cyber') return <Bug className="h-4 w-4 text-green" />;
+  if (kind === 'incident') return <AlertTriangle className="h-4 w-4 text-amber" />;
+  if (kind === 'infrastructure') return <Factory className={cls} />;
   if (kind === 'conflict') return <AlertTriangle className="h-4 w-4 text-danger" />;
   return <Camera className={cls} />;
 }
@@ -189,14 +199,27 @@ function AircraftDetails({ data }: { data: import('@/types').Aircraft }) {
 }
 
 function ShipDetails({ data }: { data: import('@/types').Ship }) {
+  const isLive = data.id.startsWith('ais-');
   return (
     <>
       <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         <div className="flex h-full items-center justify-center">
           <Ship className={`h-14 w-14 ${data.naval ? 'text-danger' : 'text-cyan'} opacity-50`} />
         </div>
-        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
-          {data.naval ? 'NAVAL' : 'COMMERCIAL'}
+        <div className="absolute left-2 top-2 flex items-center gap-1.5">
+          <span className="rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-cyan">
+            {data.naval ? 'NAVAL' : 'COMMERCIAL'}
+          </span>
+          {isLive ? (
+            <span className="flex items-center gap-1 rounded bg-green/20 px-2 py-0.5 text-[9px] font-bold tracking-wider text-green">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" />
+              LIVE AIS
+            </span>
+          ) : (
+            <span className="rounded bg-amber/20 px-2 py-0.5 text-[9px] font-bold tracking-wider text-amber">
+              REFERENCE
+            </span>
+          )}
         </div>
         <div className="scan-line" />
       </div>
@@ -221,21 +244,30 @@ function ShipDetails({ data }: { data: import('@/types').Ship }) {
 }
 
 function SatDetails({ data }: { data: import('@/types').Satellite }) {
-  const color = data.category === 'ISS' ? 'text-amber' : data.category === 'GPS' ? 'text-green' : 'text-purple-400';
+  const color = SAT_GROUP_COLOR[data.group];
   return (
     <>
       <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
         <div className="flex h-full items-center justify-center">
-          <Satellite className={`h-14 w-14 ${color} opacity-60`} />
+          <Satellite className="h-14 w-14 opacity-60" style={{ color }} />
         </div>
-        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider text-amber">
-          {data.category}
+        <div
+          className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider"
+          style={{ color }}
+        >
+          {SAT_GROUP_LABEL[data.group]}
         </div>
         <div className="scan-line" />
       </div>
       <Section title="IDENTIFICATION">
         <div className="mb-1 text-sm font-bold text-slate-100">{data.name}</div>
-        <div className="text-[10px] text-slate-500">Orbital Category: {data.category}</div>
+        <div className="text-[10px] text-slate-500">{data.category}</div>
+        <div className="mt-2">
+          <Field icon={<Satellite className="h-3 w-3" />} label="CONSTELLATION" value={data.category} />
+          {data.operator && <Field icon={<Building2 className="h-3 w-3" />} label="OPERATOR" value={data.operator} />}
+          {data.purpose && <Field icon={<Eye className="h-3 w-3" />} label="MISSION" value={data.purpose} />}
+          <Field icon={<Signal className="h-3 w-3" />} label="GROUP" value={SAT_GROUP_LABEL[data.group]} />
+        </div>
       </Section>
       <Section title="ORBITAL DATA">
         <Field icon={<Gauge className="h-3 w-3" />} label="ALTITUDE" value={`${Math.round(data.altitude)} km`} />
@@ -245,6 +277,123 @@ function SatDetails({ data }: { data: import('@/types').Satellite }) {
         <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
       </Section>
       {data.trail.length > 1 && <TrailMini trail={data.trail} />}
+    </>
+  );
+}
+
+function CyberDetails({ data }: { data: import('@/types').CyberThreat }) {
+  const color = CYBER_SEVERITY_COLOR[data.severity];
+  return (
+    <>
+      <div className="relative h-32 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center">
+          <Bug className="h-14 w-14 opacity-60" style={{ color }} />
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider" style={{ color }}>
+          {CYBER_CATEGORY_LABEL[data.category]}
+        </div>
+        <div className="absolute right-2 top-2 rounded bg-black/70 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider" style={{ color }}>
+          {data.severity}
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <div className="border-b border-cyan/10 px-3 py-2.5">
+        <div className="text-sm font-bold text-slate-100">{data.vector}</div>
+        <div className="mt-0.5 text-[10px] text-slate-500">Threat actor / campaign profile</div>
+      </div>
+
+      <Section title="TARGETING">
+        <Field icon={<Flag className="h-3 w-3" />} label="TARGET" value={data.targetCountry} danger />
+        <Field icon={<MapPin className="h-3 w-3" />} label="ANCHOR" value={data.targetOrg} />
+        <Field icon={<Activity className="h-3 w-3" />} label="EVENTS / 24H" value={data.events.toLocaleString()} danger />
+        <Field icon={<Clock className="h-3 w-3" />} label="LAST SEEN" value={new Date(data.lastSeen).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} />
+      </Section>
+
+      <Section title="ASSESSMENT">
+        <div className="text-[10px] leading-relaxed text-slate-400">{data.description}</div>
+      </Section>
+
+      <div className="border-t border-amber/20 bg-amber/5 px-3 py-2 text-[8px] leading-relaxed text-amber/80">
+        <ShieldAlert className="mb-1 inline h-3 w-3" /> MODELED TELEMETRY — curated campaign catalogue with a
+        deterministic event counter, not observed per-attack traffic.
+      </div>
+    </>
+  );
+}
+
+function IncidentDetails({ data }: { data: import('@/types').GlobalIncident }) {
+  const color = INCIDENT_CATEGORY_COLOR[data.category];
+  return (
+    <>
+      <div className="relative h-28 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center">
+          <AlertTriangle className="h-12 w-12 opacity-60" style={{ color }} />
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider" style={{ color }}>
+          {INCIDENT_CATEGORY_LABEL[data.category]}
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <div className="border-b border-cyan/10 px-3 py-2.5">
+        <div className="text-sm font-bold text-slate-100">{data.title}</div>
+        <div className="mt-0.5 text-[10px] text-slate-500">{data.country}</div>
+      </div>
+
+      <Section title="EVENT DATA">
+        <Field icon={<Zap className="h-3 w-3" />} label="SEVERITY" value={`${data.severity} / 5`} danger={data.severity >= 4} />
+        <Field icon={<Flag className="h-3 w-3" />} label="COUNTRY" value={`${data.country} (${data.countryCode})`} />
+        <Field icon={<Clock className="h-3 w-3" />} label="REPORTED" value={new Date(data.time).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })} />
+        <Field icon={<Activity className="h-3 w-3" />} label="SOURCE" value={data.source} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+      </Section>
+
+      <div className="p-3">
+        <a
+          href="https://gdacs.org/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded border border-cyan/30 bg-cyan/10 px-3 py-2.5 text-[10px] font-bold text-cyan transition hover:bg-cyan/20"
+        >
+          <ExternalLink className="h-4 w-4" /> OPEN DISASTER MONITOR
+        </a>
+      </div>
+    </>
+  );
+}
+
+function InfraDetails({ data }: { data: import('@/types').InfrastructureSite }) {
+  const color = INFRA_CATEGORY_COLOR[data.category];
+  return (
+    <>
+      <div className="relative h-28 overflow-hidden border-b border-cyan/10 bg-hud-bg">
+        <div className="flex h-full items-center justify-center">
+          <Factory className="h-12 w-12 opacity-60" style={{ color }} />
+        </div>
+        <div className="absolute left-2 top-2 rounded bg-hud-bg/80 px-2 py-0.5 text-[9px] font-bold tracking-wider" style={{ color }}>
+          {INFRA_CATEGORY_LABEL[data.category]}
+        </div>
+        <div className="scan-line" />
+      </div>
+
+      <div className="border-b border-cyan/10 px-3 py-2.5">
+        <div className="text-sm font-bold text-slate-100">{data.name}</div>
+        <div className="mt-0.5 text-[10px] text-slate-500">{data.country}</div>
+      </div>
+
+      <Section title="SITE DATA">
+        <Field icon={<Building2 className="h-3 w-3" />} label="CATEGORY" value={INFRA_CATEGORY_LABEL[data.category]} />
+        {data.operator && <Field icon={<Flag className="h-3 w-3" />} label="OPERATOR" value={data.operator} />}
+        {data.capacity && <Field icon={<Gauge className="h-3 w-3" />} label="CAPACITY" value={data.capacity} />}
+        <Field icon={<Compass className="h-3 w-3" />} label="LAT" value={data.lat.toFixed(4)} />
+        <Field icon={<Compass className="h-3 w-3" />} label="LON" value={data.lon.toFixed(4)} />
+      </Section>
+
+      <Section title="NOTES">
+        <div className="text-[10px] leading-relaxed text-slate-400">{data.description}</div>
+      </Section>
     </>
   );
 }
@@ -347,6 +496,16 @@ function CctvDetails({ data }: { data: import('@/types').CctvCamera }) {
         >
           <ExternalLink className="h-4 w-4" /> OPEN EXTERNAL FEED
         </a>
+        {data.streamUrl && (
+          <a
+            href={data.streamUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-green/30 bg-green/10 px-3 py-2.5 text-[10px] font-bold text-green transition hover:bg-green/20"
+          >
+            <Activity className="h-4 w-4" /> OPEN LIVE HLS STREAM
+          </a>
+        )}
       </div>
     </>
   );

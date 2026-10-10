@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Activity, Circle, Crosshair, LocateFixed, Navigation, Search, Github, Star } from 'lucide-react';
-import { formatUTC, formatUTCDate } from '@/lib/format';
+import { Activity, Circle, Crosshair, LocateFixed, Navigation, Search, ShieldCheck } from 'lucide-react';
+import { formatUTC, formatUTCDate, tzLabel } from '@/lib/format';
 
 export type SearchResultItem = {
   displayName: string;
@@ -53,7 +53,9 @@ export default function TopBar({
       <div className="flex shrink-0 items-center gap-3">
         <div className="flex flex-col leading-tight">
           <div className="text-sm font-bold tabular-nums text-slate-100 sm:text-base">{formatUTC(now)}</div>
-          <div className="hidden text-[8px] tracking-wider text-slate-500 md:block">{formatUTCDate(now)} · BRUSSELS</div>
+          <div className="hidden text-[8px] tracking-wider text-slate-500 md:block">
+            {formatUTCDate(now)} · {tzLabel(now)}
+          </div>
         </div>
         <div className="flex items-center gap-1.5 border border-danger/35 bg-danger/10 px-2 py-1">
           <Circle className="h-2 w-2 fill-danger text-danger blink" />
@@ -124,17 +126,13 @@ export default function TopBar({
           <Activity className="h-3 w-3 blink" /> LIVE
         </div>
 
-        <a
-          href="https://github.com/jollncoelho/OsintGodseye"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="GitHub Repository"
-          className="flex shrink-0 items-center gap-1.5 border border-cyan/30 bg-black/60 px-2.5 py-2 text-[8px] font-bold tracking-wider text-cyan transition hover:bg-cyan/15"
+        <div
+          title="Open-source build · all data from public, keyless feeds"
+          className="hidden shrink-0 items-center gap-1.5 border border-cyan/30 bg-black/60 px-2.5 py-2 text-[8px] font-bold tracking-wider text-cyan xl:flex"
         >
-          <Github className="h-3.5 w-3.5" />
-          <Star className="h-3 w-3 fill-cyan text-cyan" />
-          STAR
-        </a>
+          <ShieldCheck className="h-3.5 w-3.5" />
+          OPEN SOURCE
+        </div>
       </div>
     </header>
   );

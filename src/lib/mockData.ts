@@ -1,11 +1,9 @@
-import type { Ship, CctvCamera, Satellite, Aircraft } from '@/types';
-import type { OrbitalElements } from '@/lib/orbital';
-import { propagate } from '@/lib/orbital';
+import type { Ship, CctvCamera, Aircraft } from '@/types';
 
 // ---------- Military callsign / operator detection ----------
 const MIL_CALLSIGNS = [
   'RCH', 'RRR', 'PAT', 'EVAC', 'REACH', 'ASCOT', 'KNIGHT', 'HAVOC',
-  'VIVI', 'BART', 'JOSA', 'GAF', 'AF', 'NAVY', 'ARMY', 'FORGE',
+  'VIVI', 'BART', 'JOSA', 'GAF', 'NAVY', 'ARMY', 'FORGE',
   'DRAGN', 'HUNT', 'TITAN', 'VIPER', 'BOLT', 'HOMER', 'SHELL',
 ];
 
@@ -27,7 +25,7 @@ export const MOCK_HELICOPTERS: Aircraft[] = [
   { id: 'heli-3', kind: 'aircraft', icao24: '4d0003', callsign: 'GUARD44', originCountry: 'United States', altitude: 2500, groundSpeed: 70, heading: 270, verticalRate: 2, onGround: false, military: true, helicopter: true, model: 'UH-60 Black Hawk', manufacturer: 'Sikorsky', operator: 'US Coast Guard', registration: '7003', origin: 'IAD', destination: 'IAD', lat: 38.9, lon: -77.0, trail: [] },
   { id: 'heli-4', kind: 'aircraft', icao24: '4d0004', callsign: 'RESCUE2', originCountry: 'Germany', altitude: 1500, groundSpeed: 55, heading: 45, verticalRate: 0, onGround: false, military: false, helicopter: true, model: 'Airbus H145', manufacturer: 'Airbus', operator: 'DRF Luftrettung', registration: 'D-HMED', origin: 'MUC', destination: 'MUC', lat: 48.14, lon: 11.58, trail: [] },
   { id: 'heli-5', kind: 'aircraft', icao24: '4d0005', callsign: 'CHOPPER9', originCountry: 'United States', altitude: 3000, groundSpeed: 75, heading: 315, verticalRate: 0, onGround: false, military: true, helicopter: true, model: 'AH-64 Apache', manufacturer: 'Boeing', operator: 'US Army', registration: '7005', origin: 'DFW', destination: 'DFW', lat: 32.9, lon: -97.0, trail: [] },
-  { id: 'heli-6', kind: 'aircraft', icao24: 'ae0006', callsign: 'SAR1', originCountry: 'France', altitude: 1000, groundSpeed: 60, heading: 200, verticalRate: -1, onGround: false, military: false, helicopter: true, model: 'Leonardo AW139', manufacturer: 'Leonardo', operator: 'Société Nationale de Sauvetage', registration: 'F-ZSAR', origin: 'CDG', destination: 'CDG', lat: 48.85, lon: 2.35, trail: [] },
+  { id: 'heli-6', kind: 'aircraft', icao24: 'ae0006', callsign: 'SAR1', originCountry: 'France', altitude: 1000, groundSpeed: 60, heading: 200, verticalRate: -1, onGround: false, military: false, helicopter: true, model: 'Leonardo AW139', manufacturer: 'Leonardo', operator: 'SNSM', registration: 'F-ZSAR', origin: 'CDG', destination: 'CDG', lat: 48.85, lon: 2.35, trail: [] },
   { id: 'heli-7', kind: 'aircraft', icao24: '4d0007', callsign: 'BLADE31', originCountry: 'United States', altitude: 600, groundSpeed: 40, heading: 90, verticalRate: 0, onGround: false, military: false, helicopter: true, model: 'Sikorsky S-76', manufacturer: 'Sikorsky', operator: 'BLADE', registration: 'N76BL', origin: 'JFK', destination: 'JFK', lat: 40.72, lon: -74.01, trail: [] },
   { id: 'heli-8', kind: 'aircraft', icao24: '4d0008', callsign: 'CHC42', originCountry: 'Norway', altitude: 1800, groundSpeed: 65, heading: 0, verticalRate: 0, onGround: false, military: false, helicopter: true, model: 'Airbus H145', manufacturer: 'Airbus', operator: 'CHC Helicopter', registration: 'LN-OCH', origin: 'OSL', destination: 'OSL', lat: 59.91, lon: 10.75, trail: [] },
 ];
@@ -55,166 +53,14 @@ export const MOCK_SHIPS: Ship[] = [
   { id: 'ship-18', kind: 'ship', mmsi: '636000018', name: 'JS Izumo (DDH-183)', type: 'Helicopter Destroyer', naval: true, lat: 35.3, lon: 139.7, heading: 135, speed: 22, destination: 'Yokosuka', flag: 'JP', trail: [] },
 ];
 
-// ---------- CCTV cameras (static, CORS-safe image proxies) ----------
+// ---------- Curated camera fallback ----------
+// Only used when both the /api/cameras aggregator and the direct browser
+// fetch fail (e.g. fully offline). These are verified live TfL JamCam frames.
 export const MOCK_CCTV: CctvCamera[] = [
-  { id: 'cam-1', kind: 'cctv', name: 'Paris - Tour Eiffel', location: 'Paris, France', lat: 48.8584, lon: 2.2945, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/460/thumbnail', type: 'Landmark' },
-  { id: 'cam-2', kind: 'cctv', name: 'Londres - Westminster', location: 'London, UK', lat: 51.5007, lon: -0.1246, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/241/thumbnail', type: 'City' },
-  { id: 'cam-3', kind: 'cctv', name: 'Genève - Lac & Jet d Eau', location: 'Geneva, Switzerland', lat: 46.2074, lon: 6.1559, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/444/thumbnail', type: 'City' },
-  { id: 'cam-4', kind: 'cctv', name: 'Chamonix - Mont-Blanc', location: 'Chamonix, France', lat: 45.9237, lon: 6.8694, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/271/thumbnail', type: 'Mountain' },
-  { id: 'cam-5', kind: 'cctv', name: 'Nice - Promenade des Anglais', location: 'Nice, France', lat: 43.6957, lon: 7.2656, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/154/thumbnail', type: 'Coastal' },
-  { id: 'cam-6', kind: 'cctv', name: 'Zürich - City Center', location: 'Zurich, Switzerland', lat: 47.3686, lon: 8.5417, url: 'https://images.weserv.nl/?url=https://backend.roundshot.com/cams/60/thumbnail', type: 'City' },
+  { id: 'tfl-JamCams_00001.07450', kind: 'cctv', name: 'Piccadilly Circus', location: 'London, United Kingdom', lat: 51.5096, lon: -0.13484, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.07450.jpg', type: 'TfL JamCam' },
+  { id: 'tfl-JamCams_00001.06600', kind: 'cctv', name: 'Cromwell Rd / Earls Court Rd', location: 'London, United Kingdom', lat: 51.4946, lon: -0.1957, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.06600.jpg', type: 'TfL JamCam' },
+  { id: 'tfl-JamCams_00001.08858', kind: 'cctv', name: 'Oxford St / Orchard St', location: 'London, United Kingdom', lat: 51.514, lon: -0.15409, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.08858.jpg', type: 'TfL JamCam' },
+  { id: 'tfl-JamCams_00001.03675', kind: 'cctv', name: 'Blackheath Rd / Greenwich High Rd', location: 'London, United Kingdom', lat: 51.4742, lon: -0.02073, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03675.jpg', type: 'TfL JamCam' },
+  { id: 'tfl-JamCams_00001.09747', kind: 'cctv', name: 'Edgware Way / Broadfields Ave', location: 'London, United Kingdom', lat: 51.6216, lon: -0.27384, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.09747.jpg', type: 'TfL JamCam' },
+  { id: 'tfl-JamCams_00001.03758', kind: 'cctv', name: 'A205 Tulse Hill / Thurlow Park Rd', location: 'London, United Kingdom', lat: 51.441, lon: -0.10633, url: 'https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.03758.jpg', type: 'TfL JamCam' },
 ];
-
-// ---------- Satellite orbital elements (TLE-derived, simplified) ----------
-export const SAT_ELEMENTS: OrbitalElements[] = [
-  {
-    name: 'ISS (Zarya)',
-    category: 'ISS',
-    inc: (51.64 * Math.PI) / 180,
-    raan: (210.5 * Math.PI) / 180,
-    ecc: 0.0006,
-    a: 6778,
-    argp: (180 * Math.PI) / 180,
-    M0: (90 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 92.68,
-  },
-  {
-    name: 'Starlink-30456',
-    category: 'Starlink',
-    inc: (53.05 * Math.PI) / 180,
-    raan: (300.2 * Math.PI) / 180,
-    ecc: 0.0001,
-    a: 6921,
-    argp: (45 * Math.PI) / 180,
-    M0: (200 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 95.4,
-  },
-  {
-    name: 'Starlink-30211',
-    category: 'Starlink',
-    inc: (53.02 * Math.PI) / 180,
-    raan: (120.7 * Math.PI) / 180,
-    ecc: 0.0002,
-    a: 6925,
-    argp: (90 * Math.PI) / 180,
-    M0: (30 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 95.6,
-  },
-  {
-    name: 'GPS IIF-12 (USA-251)',
-    category: 'GPS',
-    inc: (55.0 * Math.PI) / 180,
-    raan: (60.3 * Math.PI) / 180,
-    ecc: 0.01,
-    a: 26560,
-    argp: (270 * Math.PI) / 180,
-    M0: (150 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 718,
-  },
-  {
-    name: 'GPS III-4 (USA-309)',
-    category: 'GPS',
-    inc: (55.5 * Math.PI) / 180,
-    raan: (180.1 * Math.PI) / 180,
-    ecc: 0.009,
-    a: 26560,
-    argp: (10 * Math.PI) / 180,
-    M0: (300 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 720,
-  },
-  {
-    name: 'NOAA-21 (Weather)',
-    category: 'Weather',
-    inc: (98.7 * Math.PI) / 180,
-    raan: (350.4 * Math.PI) / 180,
-    ecc: 0.0015,
-    a: 7228,
-    argp: (60 * Math.PI) / 180,
-    M0: (15 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 101.3,
-  },
-  {
-    name: 'Sentinel-2A (Earth Obs)',
-    category: 'Recon',
-    inc: (98.62 * Math.PI) / 180,
-    raan: (100.2 * Math.PI) / 180,
-    ecc: 0.0001,
-    a: 7167,
-    argp: (90 * Math.PI) / 180,
-    M0: (75 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 100.6,
-  },
-  {
-    name: 'Hubble Space Telescope',
-    category: 'Recon',
-    inc: (28.47 * Math.PI) / 180,
-    raan: (85.1 * Math.PI) / 180,
-    ecc: 0.0003,
-    a: 6920,
-    argp: (120 * Math.PI) / 180,
-    M0: (40 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 95.4,
-  },
-  {
-    name: 'Tiangong Space Station',
-    category: 'ISS',
-    inc: (41.47 * Math.PI) / 180,
-    raan: (40.0 * Math.PI) / 180,
-    ecc: 0.0004,
-    a: 6773,
-    argp: (200 * Math.PI) / 180,
-    M0: (110 * Math.PI) / 180,
-    epoch: Date.now(),
-    period: 92.2,
-  },
-];
-
-export function buildSatellites(now: number): Satellite[] {
-  return SAT_ELEMENTS.map((el, i) => {
-    const pos = propagate(el, now);
-    return {
-      id: `sat-${i}`,
-      kind: 'satellite' as const,
-      name: el.name,
-      category: el.category,
-      lat: pos.lat,
-      lon: pos.lon,
-      altitude: pos.alt,
-      velocity: pos.velocity,
-      heading: pos.heading,
-      trail: [],
-    };
-  });
-}
-
-export function buildSatellitesWithTrails(now: number, trailSteps = 30, stepMs = 60000): Satellite[] {
-  return SAT_ELEMENTS.map((el, i) => {
-    const pos = propagate(el, now);
-    const trail: [number, number][] = [];
-    for (let s = trailSteps; s >= 0; s--) {
-      const t = now - s * stepMs;
-      const p = propagate(el, t);
-      trail.push([p.lat, p.lon]);
-    }
-    return {
-      id: `sat-${i}`,
-      kind: 'satellite' as const,
-      name: el.name,
-      category: el.category,
-      lat: pos.lat,
-      lon: pos.lon,
-      altitude: pos.alt,
-      velocity: pos.velocity,
-      heading: pos.heading,
-      trail,
-    };
-  });
-}

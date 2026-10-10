@@ -5,10 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@theme {
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
 :root {
   --hud-bg: #0a0f18;
   --hud-panel: rgba(10, 15, 24, 0.78);
@@ -256,3 +252,29 @@ body,
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* ---------- Leaflet tooltips (cables, cameras) ---------- */
+.hud-tooltip {
+  background: rgba(10, 15, 24, 0.95) !important;
+  border: 1px solid rgba(34, 211, 238, 0.4) !important;
+  color: #22d3ee !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  padding: 3px 7px !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25) !important;
+}
+.hud-tooltip::before {
+  border-top-color: rgba(34, 211, 238, 0.4) !important;
+}
+.leaflet-tooltip.hud-tooltip {
+  white-space: nowrap;
+}
+
+/* Keep Leaflet panes below the HUD chrome */
+.leaflet-container {
+  z-index: 0;
+}
+

@@ -4,9 +4,9 @@ export function utcNow(): Date {
   return new Date();
 }
 
+/** Local wall-clock time for the HUD, in the operator's own timezone. */
 export function formatUTC(d: Date): string {
-  return d.toLocaleTimeString('fr-BE', {
-    timeZone: 'Europe/Brussels',
+  return d.toLocaleTimeString(undefined, {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
@@ -15,12 +15,20 @@ export function formatUTC(d: Date): string {
 }
 
 export function formatUTCDate(d: Date): string {
-  return d.toLocaleDateString('fr-BE', {
-    timeZone: 'Europe/Brussels',
+  return d.toLocaleDateString(undefined, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
+}
+
+/** Timezone label for the HUD clock (e.g. "UTC+02"). */
+export function tzLabel(d: Date = new Date()): string {
+  const offMin = -d.getTimezoneOffset();
+  if (offMin === 0) return 'UTC';
+  const sign = offMin > 0 ? '+' : '-';
+  const abs = Math.abs(offMin);
+  return `UTC${sign}${pad(Math.floor(abs / 60))}${abs % 60 ? ':' + pad(abs % 60) : ''}`;
 }
 
 export const mToft = (m: number | null) => (m == null ? null : m * 3.28084);

@@ -1,105 +1,146 @@
-# 🛰️ OSINT-God's Eye — Tactical Geospatial & OSINT Intelligence Dashboard
+# 🛰️ OSINT God's Eye — Tactical Geospatial Intelligence Dashboard
 
-An open-source, client-side geospatial intelligence (GEOINT) dashboard inspired by *God's Eye*. Designed for real-time aerial, maritime, and territorial reconnaissance using free, keyless open APIs.
+An open-source, keyless **GEOINT / OSINT** dashboard: live aircraft, live AIS
+shipping, orbital constellations, public camera networks, seismic activity,
+undersea cable infrastructure and a day/night terminator — on one tactical HUD.
 
----
+Two map engines share the same layer set:
 
-## 🌟 Key Features
+* **2D PLAN** — Leaflet + react-leaflet (fast, dense, thousands of markers)
+* **3D GLOBE** — MapLibre GL with a real globe projection, terrain and 3D buildings
 
-* 🌍 **High-Definition Satellite Imagery:** Powered by Esri World Imagery with optional hybrid boundary and locality labels.
-* ✈️ **Live Flight Tracking:** Real-time commercial and military aircraft positioning via the OpenSky Network REST API with live telemetry (speed, altitude, climb, heading).
-* 🚢 **Maritime Tracking:** Live positioning of commercial cargo vessels, tankers, and naval warships.
-* 🛰️ **Orbital Satellites:** Dynamic orbital calculation and trajectory projections for satellites (ISS, Starlink, GPS).
-* 🌐 **Global Undersea Telecom Cables:** Detailed polyline overlays of submarine fiber-optic backbone infrastructure.
-* 📍 **Interactive Territorial Intel:** Click or right-click anywhere globally to reverse-geocode addresses, fetch live local weather (Open-Meteo), and view localized photographic intel.
-* 🎛️ **Tactical HUD Filters:** Dynamic CSS shader modes including **NVG** (Night Vision Green), **FLIR** (Thermal Infrared), **CRT** (Radar Scanlines), and standard view.
-* 📻 **Global Radio Intercepts:** Integrated audio stream player connecting to worldwide local broadcast frequencies via Radio Browser.
+Everything is driven by **free, public, keyless** data sources. No API keys, no
+accounts, no paid tiers.
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Features
 
-* **Framework:** [React](https://react.dev/) + [Vite](https://vitejs.dev/)
-* **Language:** TypeScript
-* **Styling:** [Tailwind CSS](https://tailwindcss.com/) + Lucide Icons
-* **Mapping Engine:** [Leaflet](https://leafletjs.com/) / [React-Leaflet](https://react-leaflet.js.org/) & [MapLibre GL](https://maplibre.org/)
-* **Map Tiles:** Esri ArcGIS Online (World Imagery, Canvas Dark Gray, Reference Labels) & OpenStreetMap
+### Entity layers
+| Layer | Source | Notes |
+| :--- | :--- | :--- |
+| Civil / military aircraft, helicopters | `adsb.lol` → `adsb.fi` | Live, with automatic provider failover |
+| Merchant vessels | Digitraffic AIS (Fintraffic) | ~800 live vessels with real names, IMO, destinations |
+| Warships | Curated reference set | No keyless *global* naval AIS exists |
+| Satellites (SATCOM / ISR / GNSS / Earth-obs) | On-board Keplerian propagator | 4 switchable constellation groups |
+| CCTV / Webcams | 7 public traffic authorities | ~1,500 live cameras |
+| Undersea cables | Bundled GeoJSON | Global fibre backbone |
+| Live radios | Radio Browser | Worldwide public streams |
+| Earthquakes | USGS | M2.5+ feed |
+| Day / night terminator | Computed solar geometry | Real sub-solar point + twilight band |
+| Strategic points · Infrastructure · Incidents · Cyber | Curated datasets | See *Data honesty* below |
+
+### Interface
+* **Tactical HUD shaders** — NVG (night vision), FLIR (thermal), CRT (scanlines)
+* **Camera Wall** — OSIRIS-style grid of live feeds with provider filters, text
+  search, 15 s auto-refresh and locate/source actions
+* **Live Feeds** — 10 real 24/7 news, agency and Earth-observation channels
+* **Recon Toolkit** — quick toggles for cams, wall, seismic, cyber and live feeds
+* **Target panel** — per-entity telemetry, operator/purpose, trail history
+* **Search** — live geocoding (Photon) plus callsign / MMSI / vessel lookup
+* **Tactical log** — timestamped, severity-coloured event stream
+* **Clock** — rendered in *your* locale and timezone
 
 ---
 
-## 🚀 Quick Start
+## 🛠️ Tech stack
 
-### Prerequisites
-* [Node.js](https://nodejs.org/) (version 18+ recommended)
-* `npm`, `yarn` or `pnpm`
+* **React 18** + **TypeScript 5.5** (strict)
+* **Vite 5** with a dev middleware that emulates the serverless API locally
+* **Tailwind CSS 3** + lucide-react
+* **Leaflet 1.9** / **react-leaflet 4** (2D) and **MapLibre GL 6** (3D)
+* **Vercel-style serverless handlers** in `api/` for production
 
-### Installation
+---
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/jollncoelho/OsintGodseye.git
-cd OsintGodseye
-```
+## 🚀 Quick start
 
-2. **Install dependencies:**
 ```bash
 npm install
+npm run dev        # http://127.0.0.1:5173
 ```
 
-3. **Start local development server:**
+Other scripts:
+
 ```bash
-npm run dev
+npm run build      # production bundle -> dist/
+npm run preview    # serve the production build
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
 ```
 
-4. **Build for production:**
-```bash
-npm run build
-```
+> **Note on install:** if `npm install` fails while building native helpers
+> (`esbuild` / `@rollup/rollup-*`), install those platform binaries explicitly:
+> ```bash
+> npm install --no-save --ignore-scripts \
+>   @esbuild/win32-x64@0.21.5 @rollup/rollup-win32-x64-msvc@4.24.0
+> ```
 
 ---
 
-## 📡 Free & Keyless APIs Used
+## 📡 Data sources
 
-| Service | Provider | Usage |
+All live feeds are **keyless and public**. Where a source is not live, that is
+stated in the UI rather than faked.
+
+| Domain | Provider | Endpoint |
 | :--- | :--- | :--- |
-| **Satellite Imagery** | Esri ArcGIS Rest Services | HD satellite map tiles & overlays |
-| **Flight Tracking** | OpenSky Network | Live aircraft state vectors |
-| **Aircraft Photos** | Planespotters.net / Wikimedia | Target preview photography |
-| **Geocoding & Search** | OpenStreetMap Nominatim / Photon | Global address search and reverse geocoding |
-| **Local Weather** | Open-Meteo | Real-time weather and wind telemetry |
-| **Live Audio Streams** | Radio Browser API | Worldwide tactical radio streams |
+| Aircraft | adsb.lol (primary), adsb.fi (failover) | `/api/adsb` |
+| Vessels (AIS) | Digitraffic / Fintraffic (CC BY 4.0) | `/api/vessels` |
+| Cameras | TfL, Caltrans, Austin, Fintraffic, Statens vegvesen, NSW, Calgary | `/api/cameras` |
+| Earthquakes | USGS | direct |
+| Radio | Radio Browser | direct |
+| Imagery | Esri World Imagery | direct |
+| Buildings (3D) | OpenFreeMap | direct |
+| Geocoding | Photon (Komoot) | direct |
+
+### Data honesty
+
+Not every layer can be live, and the UI does not pretend otherwise:
+
+* **Cyber threats** are a curated model of known threat actors with
+  deterministically-bucketed event counters — labelled **MODELED TELEMETRY**.
+* **Global incidents** and **strategic points** are curated reference datasets,
+  deliberately neutral and non-partisan.
+* **Warships** are a curated reference fleet, since no keyless global AIS
+  source exists. Live AIS targets are badged **LIVE AIS**; curated ones
+  **REFERENCE**.
+* **Cameras** fall back to a small verified set only if every provider fails.
 
 ---
 
-## 📂 Project Structure
+## 📂 Project structure
 
 ```text
-OsintGodseye/
-├── public/
-│   └── data/               # Undersea cables & satellite GeoJSON datasets
+├── api/                    # Serverless handlers (Vercel-style)
+│   ├── adsb.ts             #   aircraft proxy + provider failover
+│   ├── cameras.ts          #   camera aggregator
+│   └── vessels.ts          #   AIS aggregator
+├── shared/                 # Isomorphic modules (server + browser)
+│   ├── adsb.ts
+│   ├── cameras.ts
+│   └── vessels.ts
 ├── src/
-│   ├── components/
-│   │   ├── Map/            # Leaflet / MapLibre map engine & tile layers
-│   │   ├── Layers/         # Aircraft, vessels, satellites & HUD markers
-│   │   ├── Sidebar/        # Tactical layer filters & HUD shader toggles
-│   │   ├── TargetHud/      # Target acquired telemetry & street view panel
-│   │   └── TopBar/         # Local clock, search bar & metrics
-│   ├── services/           # OpenSky, Nominatim & Open-Meteo fetchers
-│   ├── styles/             # NVG, FLIR and CRT scanline animations
-│   ├── App.tsx             # Root layout
-│   └── main.tsx            # Entry point
-├── package.json
-└── README.md
+│   ├── components/         # MapView (Leaflet), MapView3D (MapLibre), HUD panels
+│   ├── hooks/              # useAircraft, useVessels, useCctvCameras, …
+│   ├── lib/                # satellites, terminator, icons, curated datasets
+│   └── App.tsx
+└── vite.config.ts          # dev mirror of the api/ handlers
 ```
+
+The `shared/` modules are imported by **both** the serverless handlers and the
+browser hooks, so the dev server, the deployed functions and the static-hosting
+fallback all run identical aggregation logic.
 
 ---
 
 ## ⚖️ Disclaimer
 
-This project is developed solely for educational, research, and Open Source Intelligence (OSINT) demonstration purposes. All tracked data is aggregated from open, publicly broadcasted feeds (ADS-B, AIS, public radio streams, and public satellite telemetry).
-
----
+Built for educational, research and OSINT demonstration purposes. All live data
+is aggregated from publicly broadcasted feeds (ADS-B, AIS, public camera
+catalogues, public radio streams, USGS). Nothing here accesses private or
+restricted data.
 
 ## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+MIT.

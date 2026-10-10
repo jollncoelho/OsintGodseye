@@ -1,6 +1,16 @@
+export type EntityKind =
+  | 'aircraft'
+  | 'ship'
+  | 'satellite'
+  | 'radio'
+  | 'cctv'
+  | 'cyber'
+  | 'incident'
+  | 'infrastructure';
+
 export type BaseEntity = {
   id: string;
-  kind: 'aircraft' | 'ship' | 'satellite' | 'radio' | 'cctv';
+  kind: EntityKind;
   lat: number;
   lon: number;
 };
@@ -39,10 +49,17 @@ export type Ship = BaseEntity & {
   trail: [number, number][];
 };
 
+/** Orbital constellation group — drives the four satellite layers. */
+export type SatelliteGroup = 'comms' | 'military' | 'navigation' | 'earthobs';
+
 export type Satellite = BaseEntity & {
   kind: 'satellite';
   name: string;
-  category: string; // ISS, Starlink, GPS
+  category: string; // constellation / programme label, e.g. "Starlink"
+  group: SatelliteGroup;
+  norad?: string;
+  operator?: string;
+  purpose?: string;
   altitude: number; // km
   velocity: number; // km/s
   heading: number;
@@ -65,6 +82,72 @@ export type CctvCamera = BaseEntity & {
   location: string;
   url: string;
   type: string;
+  /** Optional HLS live stream when the provider publishes one. */
+  streamUrl?: string;
+};
+
+export type CyberCategory =
+  | 'malware'
+  | 'ransomware'
+  | 'ddos'
+  | 'phishing'
+  | 'apt'
+  | 'botnet';
+
+export type CyberThreat = BaseEntity & {
+  kind: 'cyber';
+  vector: string;
+  targetOrg: string;
+  targetCountry: string;
+  targetCode: string;
+  category: CyberCategory;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  events: number;
+  lastSeen: string;
+  description: string;
+};
+
+export type IncidentCategory =
+  | 'conflict'
+  | 'protest'
+  | 'disaster'
+  | 'accident'
+  | 'terror'
+  | 'crime'
+  | 'cyber'
+  | 'other';
+
+export type GlobalIncident = BaseEntity & {
+  kind: 'incident';
+  title: string;
+  category: IncidentCategory;
+  severity: number; // 1..5
+  country: string;
+  countryCode: string;
+  time: string;
+  source: string;
+  url?: string;
+};
+
+export type InfrastructureCategory =
+  | 'datacenter'
+  | 'dam'
+  | 'power_plant'
+  | 'substation'
+  | 'port'
+  | 'airport'
+  | 'spaceport'
+  | 'refinery'
+  | 'mine';
+
+export type InfrastructureSite = BaseEntity & {
+  kind: 'infrastructure';
+  name: string;
+  category: InfrastructureCategory;
+  country: string;
+  operator?: string;
+  capacity?: string;
+  description: string;
 };
 
 export type TerritoryIntel = {
@@ -98,12 +181,19 @@ export type LayerKey =
   | 'helicopters'
   | 'civShips'
   | 'milShips'
-  | 'satellites'
+  | 'satComms'
+  | 'satMilitary'
+  | 'satNav'
+  | 'satEarthObs'
   | 'cables'
   | 'cctv'
   | 'radios'
   | 'strategic'
-  | 'earthquakes';
+  | 'infrastructure'
+  | 'earthquakes'
+  | 'incidents'
+  | 'cyber'
+  | 'terminator';
 
 export type BaseLayerKey = 'satellite' | 'dark' | 'osm';
 export type ShaderKey = 'standard' | 'nvg' | 'thermal' | 'crt';
@@ -114,6 +204,9 @@ export type SelectedTarget =
   | { kind: 'satellite'; data: Satellite }
   | { kind: 'radio'; data: RadioStation }
   | { kind: 'cctv'; data: CctvCamera }
+  | { kind: 'cyber'; data: CyberThreat }
+  | { kind: 'incident'; data: GlobalIncident }
+  | { kind: 'infrastructure'; data: InfrastructureSite }
   | { kind: 'conflict'; data: StrategicPoint }
   | { kind: 'territory'; data: TerritoryIntel }
   | null;
@@ -148,8 +241,10 @@ export type Earthquake = {
 export type LiveFeed = {
   id: string;
   name: string;
-  category: 'space' | 'news' | 'weather';
-  embedUrl: string | null;
+  category: 'space' | 'news' | 'weather' | 'conflict';
+  /** YouTube/other embeddable live stream id, when available. */
+  youtubeId?: string;
   externalUrl: string;
   description: string;
+  country?: string;
 };

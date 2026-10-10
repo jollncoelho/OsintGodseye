@@ -1,58 +1,84 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+/**
+ * GET /api/adsb?endpoint=mil            -> military aircraft
+ * GET /api/adsb?lat=&lon=&dist=         -> aircraft around a point
+ *
+ * Server-side proxy for the keyless ADS-B network. Adds CORS, a browser
+ * User-Agent (the upstreams reject default fetch agents), provider failover
+ * and a 30 s cache.
+ *
+ * When every provider fails the last good body is served instead, so a
+ * transient 429 degrades freshness rather than blanking the layer.
+ */
 
-const CORS_HEADERS = {
+import { adsbPath, fetchAdsb, type AdsbEndpoint } from '../shared/adsb.js';
+
+type Req = {
+  method?: string;
+  query?: Record<string, string | string[] | undefined>;
+};
+type Res = {
+  setHeader: (name: string, value: string | number) => void;
+  statusCode: number;
+  end: (body?: string) => void;
+};
+
+const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const CACHE_TTL_MS = 30_000;
-const cache = new Map<string, { ts: number; body: string; status: number }>();
+const TTL_MS = 30_000;
+/** How long a stale body may still be served while upstreams are failing. */
+const STALE_MS = 10 * 60_000;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const cache = new Map<string, { ts: number; body: string }>();
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+function send(res: Res, status: number, body: string, cacheControl: string) {
+  for (const [k, v] of Object.entries(CORS)) res.setHeader(k, v);
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', cacheControl);
+  res.statusCode = status;
+  res.end(body);
+}
+
+export default async function handler(req: Req, res: Res) {
   if (req.method === 'OPTIONS') {
-    res.writeHead(200, CORS_HEADERS);
+    res.statusCode = 200;
+    for (const [k, v] of Object.entries(CORS)) res.setHeader(k, v);
     res.end();
     return;
   }
 
-  const { endpoint, lat, lon, dist } = req.query;
+  const endpoint = (first(req.query?.endpoint) === 'mil' ? 'mil' : 'area') as AdsbEndpoint;
+  const lat = first(req.query?.lat) ?? '50';
+  const lon = first(req.query?.lon) ?? '10';
+  const dist = first(req.query?.dist) ?? '250';
 
-  let targetUrl: string;
-  if (endpoint === 'mil') {
-    targetUrl = 'https://api.adsb.lol/v2/mil';
-  } else {
-    const d = dist || '250';
-    targetUrl = `https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${d}`;
-  }
-
-  const cacheKey = targetUrl;
-  const cached = cache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-    res.writeHead(cached.status, { ...CORS_HEADERS, 'Content-Type': 'application/json' });
-    res.end(cached.body);
+  const path = adsbPath(endpoint, lat, lon, dist);
+  const cached = cache.get(path);
+  if (cached && Date.now() - cached.ts < TTL_MS) {
+    send(res, 200, cached.body, 'public, max-age=30, stale-while-revalidate=120');
     return;
   }
 
-  try {
-    const upstream = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OsintGodseye/1.0',
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    const body = await upstream.text();
-
-    if (upstream.ok) {
-      cache.set(cacheKey, { ts: Date.now(), body, status: 200 });
-    }
-
-    res.writeHead(upstream.status, { ...CORS_HEADERS, 'Content-Type': 'application/json' });
-    res.end(body);
-  } catch (err) {
-    res.writeHead(502, CORS_HEADERS);
-    res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'proxy failed', ac: null }));
+  const result = await fetchAdsb(path);
+  if (result.ok) {
+    cache.set(path, { ts: Date.now(), body: result.body });
+    send(res, 200, result.body, 'public, max-age=30, stale-while-revalidate=120');
+    return;
   }
+
+  // Every provider failed — prefer a stale-but-real body over an empty one.
+  if (cached && Date.now() - cached.ts < STALE_MS) {
+    send(res, 200, cached.body, 'public, max-age=10');
+    return;
+  }
+
+  res.setHeader('X-Adsb-Errors', result.errors.join(' | ').slice(0, 300));
+  send(res, 502, result.body, 'no-store');
 }
